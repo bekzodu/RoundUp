@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoginForm from '../components/LoginForm';
 import SignupForm from '../components/SignupForm';
+import ForgotPasswordForm from '../components/ForgotPasswordForm';
 import '../styles/Login.css';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleLoginSuccess = () => {
@@ -16,9 +18,14 @@ const Login = () => {
     <div className="login-container">
       <div className="login-box">
         <h1 className="login-title">RoundUp 🎯</h1>
-        {isLogin ? (
+        {isForgotPassword ? (
+          <ForgotPasswordForm onBack={() => setIsForgotPassword(false)} />
+        ) : isLogin ? (
           <>
-            <LoginForm onLoginSuccess={handleLoginSuccess} />
+            <LoginForm 
+              onLoginSuccess={handleLoginSuccess} 
+              onForgotPassword={() => setIsForgotPassword(true)}
+            />
             <p className="switch-form">
               Don't have an account?{' '}
               <button onClick={() => setIsLogin(false)}>Sign Up</button>

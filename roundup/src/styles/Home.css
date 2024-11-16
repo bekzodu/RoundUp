@@ -1,6 +1,9 @@
 .home-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+.home-content {
   padding: 2rem;
 }
 
@@ -19,7 +22,7 @@
 }
 
 @media (max-width: 768px) {
-  .home-container {
+  .home-content {
     padding: 1rem;
   }
 } 

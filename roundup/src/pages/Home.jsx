@@ -1,8 +1,23 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import GameCard from '../components/GameCard';
+import Navbar from '../components/Navbar';
 import '../styles/Home.css';
 
 const Home = () => {
+  // Prevent back navigation when logged in
+  useEffect(() => {
+    window.history.pushState(null, '', window.location.href);
+    const handlePopState = () => {
+      window.history.pushState(null, '', window.location.href);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   // Mock data for available games
   const games = [
     {
@@ -28,13 +43,16 @@ const Home = () => {
 
   return (
     <div className="home-container">
-      <header className="home-header">
-        <h1>Available Tournaments</h1>
-      </header>
-      <div className="games-grid">
-        {games.map(game => (
-          <GameCard key={game.id} game={game} />
-        ))}
+      <Navbar />
+      <div className="home-content">
+        <header className="home-header">
+          <h1>Available Tournaments</h1>
+        </header>
+        <div className="games-grid">
+          {games.map(game => (
+            <GameCard key={game.id} game={game} />
+          ))}
+        </div>
       </div>
     </div>
   );

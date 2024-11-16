@@ -1,21 +1,32 @@
 import React, { useState } from 'react';
+import { auth } from '../config/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const SignupForm = ({ onSignupSuccess }) => {
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: '',
     confirmPassword: ''
   });
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords don't match!");
+      setError("Passwords don't match!");
       return;
     }
-    // Here you would typically make an API call to create account
-    // For prototype, we'll just simulate success
-    onSignupSuccess();
+
+    try {
+      await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      onSignupSuccess();
+    } catch (error) {
+      setError(error.message);
+    }
   };
 
   const handleChange = (e) => {
@@ -27,29 +38,37 @@ const SignupForm = ({ onSignupSuccess }) => {
 
   return (
     <form onSubmit={handleSubmit} className="auth-form">
+      {error && <div className="error-message">{error}</div>}
       <div className="form-group">
         <input
-          type="text"
-          name="username"
-          placeholder="Username"
-          value={formData.username}
+          type="email"
+          name="email"
+          placeholder="Email"
+          value={formData.email}
           onChange={handleChange}
           required
         />
       </div>
-      <div className="form-group">
+      <div className="form-group password-group">
         <input
-          type="password"
+          type={showPassword ? "text" : "password"}
           name="password"
           placeholder="Password"
           value={formData.password}
           onChange={handleChange}
           required
         />
+        <button 
+          type="button" 
+          className="password-toggle"
+          onClick={() => setShowPassword(!showPassword)}
+        >
+          {showPassword ? <FaEyeSlash /> : <FaEye />}
+        </button>
       </div>
-      <div className="form-group">
+      <div className="form-group password-group">
         <input
-          type="password"
+          type={showPassword ? "text" : "password"}
           name="confirmPassword"
           placeholder="Confirm Password"
           value={formData.confirmPassword}
