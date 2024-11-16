@@ -1,0 +1,12 @@
+src/
+  components/
+    LoginForm.jsx
+    SignupForm.jsx
+    GameCard.jsx
+  pages/
+    Login.jsx
+    Home.jsx
+  styles/
+    Login.css
+    Home.css
+    GameCard.css 
