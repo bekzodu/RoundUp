@@ -47,24 +47,32 @@
 }
 
 .points-display {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 8px 16px;
+  border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .points-label {
-  color: #888;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .points-value {
-  color: #4a90e2;
-  font-weight: 600;
-  font-size: 1rem;
+  color: #4CAF50;
+  font-weight: bold;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+}
+
+.points-value.updating {
+  color: #FFD700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  transform: scale(1.1);
 }
 
 .navbar-spacer {

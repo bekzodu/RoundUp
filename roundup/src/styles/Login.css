@@ -1,26 +1,43 @@
 .login-container {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  padding: 2rem;
 }
 
 .login-box {
   background: rgba(255, 255, 255, 0.1);
-  padding: 2rem;
+  padding: 2.5rem;
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
   width: 100%;
   max-width: 400px;
-  margin: 1rem;
+  animation: fadeIn 0.8s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.login-title {
+.main-title {
   color: white;
+  font-size: 5rem;
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 3rem;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+  animation: fadeInDown 0.8s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .auth-form {

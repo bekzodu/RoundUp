@@ -5,6 +5,7 @@ import { doc, updateDoc, getDoc, increment, deleteField, arrayRemove } from 'fir
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth } from '../config/firebase';
 import '../styles/SquidGlassGame.css';
+import { animatePoints } from '../utils/animatePoints';
 
 const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
   const navigate = useNavigate();
@@ -19,6 +20,10 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
   const [canCashout, setCanCashout] = useState(false);
   const [disabledRow, setDisabledRow] = useState(null);
   const [showCashoutAnimation, setShowCashoutAnimation] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [revealCorrect, setRevealCorrect] = useState(null);
+  const [celebrationActive, setCelebrationActive] = useState(false);
   const TOTAL_ROWS = 10;
   const GLASSES_PER_ROW = 3;
   const BASE_POINTS = 10;
@@ -40,6 +45,22 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
 
   useEffect(() => {
     initializeGame();
+  }, []);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', auth.currentUser.email));
+        const querySnapshot = await getDocs(q);
+        const userDoc = querySnapshot.docs[0];
+        setIsAdmin(userDoc.data().isAdmin === true);
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+      }
+    };
+
+    checkAdminStatus();
   }, []);
 
   const handleGlassClick = async (rowIndex, glassIndex) => {
@@ -68,7 +89,11 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
       if (currentPosition === TOTAL_ROWS - 1) {
         setHasWon(true);
         setIsGameOver(true);
-        await handleGameComplete(true);
+        setCelebrationActive(true);
+        setTimeout(async () => {
+          await handleGameComplete(true);
+          setCelebrationActive(false);
+        }, 4000);
       } else {
         setTimeout(() => {
           setCurrentPosition(prev => prev + 1);
@@ -77,6 +102,8 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
         }, 1000);
       }
     } else {
+      const correctGlassIndex = gameBoard[rowIndex].findIndex(glass => glass === true);
+      setRevealCorrect({ row: rowIndex, glass: correctGlassIndex });
       setIsGameOver(true);
       setCanCashout(false);
       await handleGameComplete(false);
@@ -86,10 +113,40 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
   const handleGameComplete = async (won) => {
     try {
       const gameRef = doc(db, 'games', gameId);
+      
+      if (won && currentPosition === TOTAL_ROWS - 1) {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', auth.currentUser.email));
+        const querySnapshot = await getDocs(q);
+        const userDoc = querySnapshot.docs[0];
+        const username = userDoc.id;
+        
+        const currentUserPoints = userDoc.data().points || 0;
+
+        await updateDoc(doc(db, 'users', username), {
+          points: increment(currentPoints)
+        });
+
+        window.dispatchEvent(new CustomEvent('animate-points', {
+          detail: {
+            startValue: currentUserPoints,
+            endValue: currentUserPoints + currentPoints
+          }
+        }));
+
+        window.dispatchEvent(new CustomEvent('show-toast', {
+          detail: {
+            message: `Congratulations! You've earned ${currentPoints} points!`,
+            type: 'success'
+          }
+        }));
+      }
+
       await updateDoc(gameRef, {
         [`participants.${userId}.completed`]: true,
         [`participants.${userId}.won`]: won,
-        [`participants.${userId}.score`]: won ? currentPosition + 1 : currentPosition
+        [`participants.${userId}.score`]: won ? currentPosition + 1 : currentPosition,
+        [`participants.${userId}.pointsEarned`]: won ? currentPoints : 0
       });
       
       if (onGameComplete) {
@@ -158,17 +215,24 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
     try {
       setShowCashoutAnimation(true);
       
-      // Get user's username
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('email', '==', auth.currentUser.email));
       const querySnapshot = await getDocs(q);
       const userDoc = querySnapshot.docs[0];
       const username = userDoc.id;
+      
+      const currentUserPoints = userDoc.data().points || 0;
 
-      // Update user's points balance
       await updateDoc(doc(db, 'users', username), {
         points: increment(currentPoints)
       });
+
+      window.dispatchEvent(new CustomEvent('animate-points', {
+        detail: {
+          startValue: currentUserPoints,
+          endValue: currentUserPoints + currentPoints
+        }
+      }));
 
       // Show animation and reset game
       setTimeout(() => {
@@ -200,6 +264,11 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
     }
   };
 
+  const handleShowHint = () => {
+    setShowHint(true);
+    setTimeout(() => setShowHint(false), 1000); // Hide hint after 1 second
+  };
+
   return (
     <div className="squid-glass-game">
       <div className="game-info">
@@ -214,6 +283,11 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
         {canCashout && !isGameOver && (
           <button className="cashout-btn" onClick={handleCashout}>
             Cash Out ({currentPoints} points)
+          </button>
+        )}
+        {isAdmin && !isGameOver && (
+          <button className="hint-btn" onClick={handleShowHint}>
+            Show Hint
           </button>
         )}
       </div>
@@ -239,11 +313,29 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
                       ? 'correct' 
                       : 'broken'
                     : ''
-                } ${rowIndex < currentPosition ? 'passed' : ''}`}
+                } ${
+                  rowIndex < currentPosition && isCorrect 
+                    ? 'passed-correct' 
+                    : ''
+                } ${
+                  revealCorrect?.row === rowIndex && 
+                  revealCorrect?.glass === glassIndex && 
+                  isGameOver && 
+                  !hasWon
+                    ? 'reveal-correct'
+                    : ''
+                } ${
+                  showHint && rowIndex === currentPosition && isCorrect ? 'hint' : ''
+                }`}
                 onClick={() => handleGlassClick(rowIndex, glassIndex)}
               >
                 <div className="glass-surface"></div>
                 <div className="glass-reflection"></div>
+                {selectedGlass?.row === rowIndex && 
+                 !isCorrect &&
+                 !hasWon && (
+                  <div className="x-mark">✕</div>
+                )}
                 {showPoints && 
                  rowIndex === currentPosition && 
                  selectedGlass?.glass === glassIndex && 
@@ -252,17 +344,18 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
                 )}
               </div>
             ))}
-            {rowIndex === currentPosition + 1 && currentPoints > 0 && !isGameOver && (
-              <div className="multiplier-indicator">
-                <span className="multiply-symbol">×2</span>
-                <span className="potential-win">
-                  Potential: {currentPoints * 2}
-                </span>
-              </div>
-            )}
           </div>
         ))}
       </div>
+
+      {currentPoints > 0 && !isGameOver && (
+        <div className="multiplier-indicator">
+          <span className="multiply-symbol">×2</span>
+          <span className="potential-win">
+            Potential: {currentPoints * 2}
+          </span>
+        </div>
+      )}
 
       {showCashoutAnimation && (
         <div className="cashout-animation">
@@ -293,6 +386,20 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
       <button onClick={handleQuit} className="quit-button">
         Quit Game
       </button>
+
+      {celebrationActive && (
+        <div className="celebration-container">
+          <div className="celebration-content">
+            <div className="jackpot-text">JACKPOT!</div>
+            <div className="win-amount">+{currentPoints} POINTS!</div>
+            <div className="confetti-container">
+              {[...Array(50)].map((_, i) => (
+                <div key={i} className="confetti"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
