@@ -1,122 +1,69 @@
-import React, { useEffect } from 'react';
-import GameCard from '../components/GameCard';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
+import Sidebar from '../components/Sidebar';
+import GameCard from '../components/GameCard';
+import { db } from '../config/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import '../styles/Home.css';
 
 const Home = () => {
-  // Prevent back navigation when logged in
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const [activeGames, setActiveGames] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    window.history.pushState(null, '', window.location.href);
-    const handlePopState = () => {
-      window.history.pushState(null, '', window.location.href);
+    const fetchActiveGames = async () => {
+      try {
+        const gamesRef = collection(db, 'games');
+        const q = query(gamesRef, where('status', '==', 'published'));
+        const querySnapshot = await getDocs(q);
+        
+        const gamesData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        setActiveGames(gamesData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching games:', error);
+        setLoading(false);
+      }
     };
 
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
+    fetchActiveGames();
   }, []);
 
-  // Mock data for available games
-  const games = [
-    {
-      id: 1,
-      title: "Weekend Warriors",
-      players: 24,
-      maxPlayers: 32,
-      rounds: 5,
-      entryFee: "0.1 ETH",
-      startTime: "2024-03-20T15:00:00Z"
-    },
-    {
-      id: 2,
-      title: "Quick Tournament",
-      players: 8,
-      maxPlayers: 16,
-      rounds: 3,
-      entryFee: "0.05 ETH",
-      startTime: "2024-03-20T16:30:00Z"
-    },
-    {
-      id: 3,
-      title: "Night Owls",
-      players: 12,
-      maxPlayers: 20,
-      rounds: 4,
-      entryFee: "0.08 ETH",
-      startTime: "2024-03-20T18:00:00Z"
-    },
-    {
-      id: 4,
-      title: "Morning Glory",
-      players: 10,
-      maxPlayers: 15,
-      rounds: 3,
-      entryFee: "0.07 ETH",
-      startTime: "2024-03-21T08:00:00Z"
-    },
-    {
-      id: 5,
-      title: "Lunchtime Legends",
-      players: 16,
-      maxPlayers: 24,
-      rounds: 5,
-      entryFee: "0.09 ETH",
-      startTime: "2024-03-21T12:00:00Z"
-    },
-    {
-      id: 6,
-      title: "Afternoon Delight",
-      players: 14,
-      maxPlayers: 18,
-      rounds: 4,
-      entryFee: "0.06 ETH",
-      startTime: "2024-03-21T15:00:00Z"
-    },
-    {
-      id: 7,
-      title: "Evening Showdown",
-      players: 20,
-      maxPlayers: 30,
-      rounds: 6,
-      entryFee: "0.12 ETH",
-      startTime: "2024-03-21T19:00:00Z"
-    },
-    {
-      id: 8,
-      title: "Midnight Madness",
-      players: 18,
-      maxPlayers: 25,
-      rounds: 5,
-      entryFee: "0.11 ETH",
-      startTime: "2024-03-21T23:00:00Z"
-    },
-    {
-      id: 9,
-      title: "Dawn Patrol",
-      players: 22,
-      maxPlayers: 28,
-      rounds: 4,
-      entryFee: "0.1 ETH",
-      startTime: "2024-03-22T05:00:00Z"
-    }
-  ];
-
   return (
-    <div className="home-container">
+    <>
       <Navbar />
-      <div className="home-content">
-        <header className="home-header">
-          <h1>Available Tournaments</h1>
-        </header>
-        <div className="games-grid">
-          {games.map(game => (
-            <GameCard key={game.id} game={game} />
-          ))}
-        </div>
+      <div className="home-container">
+        <Sidebar 
+          isExpanded={isSidebarExpanded} 
+          setIsExpanded={setIsSidebarExpanded}
+        />
+        <main className={`main-content ${isSidebarExpanded ? 'shifted' : ''}`}>
+          <div className="home-content">
+            <header className="home-header">
+              <h1>Available Tournaments</h1>
+            </header>
+            {loading ? (
+              <div className="loading-message">Loading games...</div>
+            ) : activeGames.length > 0 ? (
+              <div className="games-grid">
+                {activeGames.map(game => (
+                  <GameCard key={game.id} game={game} />
+                ))}
+              </div>
+            ) : (
+              <div className="no-games-message">
+                No active tournaments available at the moment.
+              </div>
+            )}
+          </div>
+        </main>
       </div>
-    </div>
+    </>
   );
 };
 

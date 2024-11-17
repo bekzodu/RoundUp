@@ -1,10 +1,33 @@
-.home-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+  background-color: #1a1a1a;
 }
 
-.home-content {
+.home-container {
+  min-height: 100vh;
+  background-color: #1a1a1a;
+  color: #ffffff;
+  display: flex;
+  padding-top: 60px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.main-content {
+  flex: 1;
   padding: 2rem;
+  transition: margin-left 0.3s ease;
+}
+
+.main-content.shifted {
+  margin-left: 250px;
+}
+
+.main-content:not(.shifted) {
+  margin-left: 60px;
 }
 
 .home-header {

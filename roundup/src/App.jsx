@@ -6,6 +6,10 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Account from './pages/Account';
 import Toast from './components/Toast';
+import Welcome from './pages/Welcome';
+import AdminConsole from './pages/AdminConsole';
+import GamePage from './pages/GamePage';
+import ActiveGames from './pages/ActiveGames';
 
 function App() {
   const [toast, setToast] = useState(null);
@@ -24,6 +28,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/welcome" element={<Welcome />} />
           <Route 
             path="/home" 
             element={
@@ -40,6 +45,23 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute>
+                <AdminConsole />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/game/:gameId" 
+            element={
+              <ProtectedRoute>
+                <GamePage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route path="/active-games" element={<ActiveGames />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
       </Router>

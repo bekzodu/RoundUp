@@ -1,29 +1,174 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { auth, db } from '../config/firebase';
+import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { Close } from '@mui/icons-material';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import '../styles/GameCard.css';
 
 const GameCard = ({ game }) => {
-  const handleJoin = () => {
-    // Handle tournament join logic
-    console.log(`Joining tournament ${game.id}`);
+  const navigate = useNavigate();
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [userPoints, setUserPoints] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [hasJoined, setHasJoined] = useState(false);
+
+  useEffect(() => {
+    const checkIfJoined = async () => {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', auth.currentUser.email));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const userData = querySnapshot.docs[0].data();
+        const currentGames = userData.currentGames || {};
+        setHasJoined(!!currentGames[game.id]);
+      }
+    };
+
+    checkIfJoined();
+  }, [game.id]);
+
+  const handleJoinClick = async () => {
+    if (hasJoined) {
+      navigate(`/game/${game.id}`);
+      return;
+    }
+
+    // Fetch user's current points
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('email', '==', auth.currentUser.email));
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      const userData = querySnapshot.docs[0].data();
+      setUserPoints(userData.points);
+      setShowConfirm(true);
+    }
+  };
+
+  const handleConfirmJoin = async () => {
+    setLoading(true);
+    try {
+      // Update user points
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', auth.currentUser.email));
+      const querySnapshot = await getDocs(q);
+      const userDoc = querySnapshot.docs[0];
+      
+      // Create the game entry
+      const gameEntry = {
+        gameId: game.id,
+        result: 'pending',
+        joinedAt: new Date().toISOString(),
+        status: 'active'
+      };
+
+      // Update user points and currentGames
+      await updateDoc(doc(db, 'users', userDoc.id), {
+        points: userPoints - game.entryFee,
+        [`currentGames.${game.id}`]: gameEntry
+      });
+
+      // Update game participants
+      await updateDoc(doc(db, 'games', game.id), {
+        currentPlayers: game.currentPlayers + 1,
+        participants: arrayUnion(auth.currentUser.email)
+      });
+
+      navigate(`/game/${game.id}`);
+    } catch (error) {
+      console.error('Error joining game:', error);
+      window.dispatchEvent(new CustomEvent('show-toast', {
+        detail: {
+          message: 'Error joining game. Please try again.',
+          type: 'error'
+        }
+      }));
+    }
+    setLoading(false);
+  };
+
+  const calculatePrizePool = () => {
+    return game.currentPlayers * game.entryFee;
   };
 
   return (
-    <div className="game-card">
-      <h2 className="game-title">{game.title}</h2>
-      <div className="game-info">
-        <p>Players: {game.players}/{game.maxPlayers}</p>
-        <p>Rounds: {game.rounds}</p>
-        <p>Entry Fee: {game.entryFee}</p>
-        <p>Starts: {new Date(game.startTime).toLocaleString()}</p>
+    <>
+      <div className="game-card">
+        <h3>{game.title}</h3>
+        <div className="game-details">
+          <p>Type: {game.gameType}</p>
+          <p>Players: {game.currentPlayers}/{game.maxPlayers}</p>
+          <p>Entry Fee: {game.entryFee.toLocaleString()} Points</p>
+          <p>Prize Pool: {calculatePrizePool().toLocaleString()} Points</p>
+        </div>
+        <button 
+          className={`join-btn ${game.currentPlayers >= game.maxPlayers ? 'disabled' : ''}`}
+          onClick={handleJoinClick}
+          disabled={!hasJoined && game.currentPlayers >= game.maxPlayers}
+        >
+          <span className="btn-text">
+            {hasJoined ? 'Go Back' : 
+              game.currentPlayers >= game.maxPlayers ? 'Full' : 'Join Game'}
+          </span>
+          <span className="btn-icon">→</span>
+        </button>
       </div>
-      <button 
-        className="join-button"
-        onClick={handleJoin}
-        disabled={game.players >= game.maxPlayers}
-      >
-        {game.players >= game.maxPlayers ? 'Full' : 'Join Tournament'}
-      </button>
-    </div>
+
+      {showConfirm && (
+        <div className="confirm-overlay">
+          <div className="confirm-modal">
+            <button 
+              className="close-btn"
+              onClick={() => setShowConfirm(false)}
+            >
+              <Close />
+            </button>
+            
+            <h2>Join Game</h2>
+            <h3>{game.title}</h3>
+            
+            <div className="confirm-details">
+              <div className="detail-row">
+                <span>Entry Fee:</span>
+                <span className="value">{game.entryFee.toLocaleString()} Points</span>
+              </div>
+              <div className="detail-row">
+                <span>Your Balance:</span>
+                <span className="value">{userPoints.toLocaleString()} Points</span>
+              </div>
+              <div className="detail-row">
+                <span>Remaining Balance:</span>
+                <span className={`value ${userPoints - game.entryFee < 0 ? 'negative' : ''}`}>
+                  {(userPoints - game.entryFee).toLocaleString()} Points
+                </span>
+              </div>
+            </div>
+
+            {userPoints < game.entryFee ? (
+              <div className="insufficient-funds">
+                <p>Insufficient funds to join this game.</p>
+                <button 
+                  className="deposit-btn"
+                  onClick={() => navigate('/shop')}
+                >
+                  Get More Points
+                </button>
+              </div>
+            ) : (
+              <button 
+                className="confirm-btn"
+                onClick={handleConfirmJoin}
+                disabled={loading}
+              >
+                {loading ? 'Joining...' : 'Confirm Join'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

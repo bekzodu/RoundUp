@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { auth } from '../config/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 
 const SignupForm = ({ onSignupSuccess }) => {
   const [formData, setFormData] = useState({
@@ -11,6 +12,7 @@ const SignupForm = ({ onSignupSuccess }) => {
   });
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,8 +24,17 @@ const SignupForm = ({ onSignupSuccess }) => {
     }
 
     try {
-      await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      onSignupSuccess();
+      const userCredential = await createUserWithEmailAndPassword(
+        auth, 
+        formData.email, 
+        formData.password
+      );
+      
+      if (onSignupSuccess) {
+        onSignupSuccess();
+      }
+      
+      navigate('/welcome', { replace: true });
     } catch (error) {
       setError(error.message);
     }

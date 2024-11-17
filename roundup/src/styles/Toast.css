@@ -1,14 +1,17 @@
 .toast {
   position: fixed;
-  top: 20px;
+  top: 80px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 12px 24px;
+  padding: 1rem 2rem;
   border-radius: 4px;
   color: white;
-  font-size: 14px;
-  z-index: 1000;
-  animation: slideIn 0.5s ease-out, fadeOut 0.5s ease-out 2.5s;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 2000;
+  animation: slideDown 0.3s ease-out;
 }
 
 .success {

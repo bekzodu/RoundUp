@@ -1,0 +1,245 @@
+.game-page-container {
+  min-height: 100vh;
+  background-color: #1a1a1a;
+  color: #ffffff;
+  display: flex;
+  padding-top: 60px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.game-content {
+  flex: 1;
+  padding: 2rem;
+  transition: margin-left 0.3s ease;
+}
+
+.game-content.shifted {
+  margin-left: 250px;
+}
+
+.game-content:not(.shifted) {
+  margin-left: 60px;
+}
+
+.game-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.game-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  color: #4a90e2;
+}
+
+.game-type {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: rgba(74, 144, 226, 0.1);
+  border: 1px solid rgba(74, 144, 226, 0.3);
+  border-radius: 20px;
+  color: #4a90e2;
+  font-weight: 500;
+}
+
+.game-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.info-card {
+  background-color: #2d2d2d;
+  padding: 1.5rem;
+  border-radius: 10px;
+  text-align: center;
+  border: 1px solid #3d3d3d;
+  position: relative;
+}
+
+.info-card h3 {
+  color: #888;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.info-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: white;
+}
+
+.info-value.highlight {
+  color: #4caf50;
+}
+
+.join-button {
+  display: block;
+  margin: 3rem auto;
+  padding: 1rem 3rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.join-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.join-button:disabled {
+  background-color: #666;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.confirmation-modal {
+  background-color: #2d2d2d;
+  padding: 2rem;
+  border-radius: 10px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+}
+
+.confirmation-modal h2 {
+  color: #4a90e2;
+  margin-bottom: 1.5rem;
+}
+
+.confirmation-modal p {
+  margin: 0.5rem 0;
+  color: #b3b3b3;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.confirm-btn,
+.cancel-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.confirm-btn {
+  background-color: #4caf50;
+  color: white;
+}
+
+.confirm-btn:hover {
+  background-color: #45a049;
+}
+
+.cancel-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background-color: #d32f2f;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  color: #888;
+  font-size: 1.2rem;
+}
+
+.player-list-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 8px;
+  color: var(--text-color);
+  display: inline-flex;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.player-list-toggle:hover {
+  opacity: 0.8;
+}
+
+.player-list {
+  margin-top: 12px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.player-item {
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  margin-bottom: 4px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.player-item:last-child {
+  margin-bottom: 0;
+}
+
+.players-card {
+  overflow: visible;
+  z-index: 1;
+}
+
+.players-card .player-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 8px;
+  background: #2d2d2d;
+  border: 1px solid #3d3d3d;
+  border-radius: 8px;
+  padding: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.join-button.already-joined {
+  background-color: #4a90e2;
+}
+
+.join-button.already-joined:hover {
+  background-color: #357abd;
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+}
+ 

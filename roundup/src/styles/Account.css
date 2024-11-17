@@ -2,12 +2,24 @@
   min-height: 100vh;
   background-color: #1a1a1a;
   color: #ffffff;
+  display: flex;
+  padding-top: 60px;
+  position: relative;
+  overflow-x: hidden;
 }
 
 .account-content {
+  flex: 1;
   padding: 2rem;
-  max-width: 800px;
-  margin: 0 auto;
+  transition: margin-left 0.3s ease;
+}
+
+.account-content.shifted {
+  margin-left: 250px;
+}
+
+.account-content:not(.shifted) {
+  margin-left: 60px;
 }
 
 .account-content h1 {
@@ -22,6 +34,8 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   text-align: center;
   border: 1px solid #3d3d3d;
+  max-width: 500px;
+  margin: 0 auto;
 }
 
 .profile-picture-container {
@@ -110,5 +124,225 @@
   box-sizing: border-box;
   background-color: rgba(74, 144, 226, 0.1);
   border-radius: 50%;
+}
+
+.email-section {
+  margin-top: 1rem;
+}
+
+.email-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.email-display p {
+  margin: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+.email-edit {
+  position: relative;
+  width: 100%;
+  max-width: 250px;
+  margin: 0 auto;
+}
+
+.email-input {
+  padding: 0.5rem;
+  padding-right: 70px;
+  border-radius: 4px;
+  border: 1px solid #3d3d3d;
+  background-color: #1a1a1a;
+  color: white;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.email-actions {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4a90e2;
+  height: 24px;
+}
+
+.edit-icon, .check-icon, .close-icon {
+  font-size: 1.8rem;
+}
+
+.check-icon {
+  color: #4caf50;
+}
+
+.close-icon {
+  color: #f44336;
+}
+
+.verification-section {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.verification-input {
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #3d3d3d;
+  background-color: #1a1a1a;
+  color: white;
+  width: 150px;
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+.verify-button {
+  padding: 0.5rem 1rem;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.verify-button:hover {
+  background-color: #45a049;
+}
+
+.password-prompt {
+  margin-top: 1rem;
+  width: 100%;
+  max-width: 250px;
+  margin: 1rem auto 0;
+}
+
+.password-prompt p {
+  color: #ffffff;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.password-input {
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #3d3d3d;
+  background-color: #1a1a1a;
+  color: white;
+  width: 200px;
+}
+
+.password-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.cancel-button {
+  padding: 0.5rem 1rem;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancel-button:hover {
+  background-color: #d32f2f;
+}
+
+.username-section {
+  margin: 1.5rem 0;
+  padding: 1rem 0;
+  border-top: 1px solid #3d3d3d;
+  border-bottom: 1px solid #3d3d3d;
+}
+
+.create-username {
+  display: flex;
+  justify-content: center;
+}
+
+.create-username-btn {
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.create-username-btn:hover {
+  background-color: #357abd;
+}
+
+.username-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.username-display p {
+  margin: 0;
+  font-weight: 600;
+  color: #4a90e2;
+}
+
+.username-edit {
+  position: relative;
+  width: 100%;
+  max-width: 250px;
+  margin: 0 auto;
+}
+
+.username-input {
+  padding: 0.5rem;
+  padding-right: 70px;
+  border-radius: 4px;
+  border: 1px solid #3d3d3d;
+  background-color: #1a1a1a;
+  color: white;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.username-actions {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+  background-color: #1a1a1a;
 }
  
