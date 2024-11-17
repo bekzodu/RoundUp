@@ -1,0 +1,114 @@
+.account-container {
+  min-height: 100vh;
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+.account-content {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.account-content h1 {
+  color: #ffffff;
+  margin-bottom: 2rem;
+}
+
+.profile-section {
+  background-color: #2d2d2d;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  border: 1px solid #3d3d3d;
+}
+
+.profile-picture-container {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 1.5rem;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #2d2d2d;
+}
+
+.profile-picture {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-picture-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+}
+
+.upload-label {
+  color: #ffffff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 8px 16px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.upload-label:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.profile-section h2 {
+  margin-bottom: 0.5rem;
+  color: #ffffff;
+}
+
+.profile-section p {
+  color: #b3b3b3;
+  margin-bottom: 1rem;
+}
+
+.profile-picture-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.upload-button {
+  padding: 0.5rem 1rem;
+  background-color: #4a90e2;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.upload-button:hover {
+  background-color: #357abd;
+}
+
+.default-avatar {
+  width: 100% !important;
+  height: 100% !important;
+  padding: 1rem;
+  box-sizing: border-box;
+  background-color: rgba(74, 144, 226, 0.1);
+  border-radius: 50%;
+}
+ 

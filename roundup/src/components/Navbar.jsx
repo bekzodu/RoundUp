@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FaUser } from 'react-icons/fa';
 import '../styles/Navbar.css';
 import { useAuth } from '../context/AuthContext';
 import { signOut } from 'firebase/auth';
@@ -20,12 +21,21 @@ const Navbar = () => {
     }
   };
 
+  const handleAccountClick = () => {
+    navigate('/account');
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-logo">ROUNDUP</div>
-      <button onClick={handleLogout} className="logout-btn">
-        Logout
-      </button>
+      <div className="navbar-buttons">
+        <button onClick={handleAccountClick} className="account-btn">
+          <FaUser />
+        </button>
+        <button onClick={handleLogout} className="logout-btn">
+          Logout
+        </button>
+      </div>
     </nav>
   );
 };
