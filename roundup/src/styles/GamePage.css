@@ -242,4 +242,29 @@
   background-color: #357abd;
   box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
 }
+
+.game-page {
+  min-height: 100vh;
+  background-color: #1a1a1a;
+  padding-top: 60px; /* For navbar */
+}
+
+.game-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.loading, .error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 60px);
+  color: white;
+  font-size: 1.2rem;
+}
+
+.error {
+  color: #f44336;
+}
  

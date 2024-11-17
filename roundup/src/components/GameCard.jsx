@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../config/firebase';
-import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, deleteField } from 'firebase/firestore';
 import { Close } from '@mui/icons-material';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import '../styles/GameCard.css';
@@ -31,7 +31,11 @@ const GameCard = ({ game }) => {
 
   const handleJoinClick = async () => {
     if (hasJoined) {
-      navigate(`/game/${game.id}`);
+      if (game.status === 'active') {
+        navigate(`/game/${game.id}`);
+      } else {
+        await handleQuitGame();
+      }
       return;
     }
 
@@ -50,11 +54,12 @@ const GameCard = ({ game }) => {
   const handleConfirmJoin = async () => {
     setLoading(true);
     try {
-      // Update user points
+      // Get user's username from the users collection
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('email', '==', auth.currentUser.email));
       const querySnapshot = await getDocs(q);
       const userDoc = querySnapshot.docs[0];
+      const username = userDoc.id; // document ID is the username
       
       // Create the game entry
       const gameEntry = {
@@ -65,15 +70,15 @@ const GameCard = ({ game }) => {
       };
 
       // Update user points and currentGames
-      await updateDoc(doc(db, 'users', userDoc.id), {
+      await updateDoc(doc(db, 'users', username), {
         points: userPoints - game.entryFee,
         [`currentGames.${game.id}`]: gameEntry
       });
 
-      // Update game participants
+      // Update game participants with username instead of email
       await updateDoc(doc(db, 'games', game.id), {
         currentPlayers: game.currentPlayers + 1,
-        participants: arrayUnion(auth.currentUser.email)
+        participants: arrayUnion(username)
       });
 
       navigate(`/game/${game.id}`);
@@ -82,6 +87,49 @@ const GameCard = ({ game }) => {
       window.dispatchEvent(new CustomEvent('show-toast', {
         detail: {
           message: 'Error joining game. Please try again.',
+          type: 'error'
+        }
+      }));
+    }
+    setLoading(false);
+  };
+
+  const handleQuitGame = async () => {
+    setLoading(true);
+    try {
+      // Get user's username from the users collection
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', auth.currentUser.email));
+      const querySnapshot = await getDocs(q);
+      const userDoc = querySnapshot.docs[0];
+      const username = userDoc.id;
+
+      // Remove the game from user's currentGames
+      await updateDoc(doc(db, 'users', username), {
+        [`currentGames.${game.id}`]: deleteField()
+      });
+
+      // Update game document to remove the user and decrease player count
+      await updateDoc(doc(db, 'games', game.id), {
+        currentPlayers: game.currentPlayers - 1,
+        participants: arrayRemove(username)
+      });
+
+      // Navigate back to home page
+      navigate('/');
+      
+      window.dispatchEvent(new CustomEvent('show-toast', {
+        detail: {
+          message: 'Successfully quit the game',
+          type: 'success'
+        }
+      }));
+
+    } catch (error) {
+      console.error('Error quitting game:', error);
+      window.dispatchEvent(new CustomEvent('show-toast', {
+        detail: {
+          message: 'Error quitting game. Please try again.',
           type: 'error'
         }
       }));

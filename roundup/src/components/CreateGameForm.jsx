@@ -10,7 +10,8 @@ const GAME_TYPES = [
   { id: 'number_guess', name: 'Number Guess' },
   { id: 'card_match', name: 'Card Match' },
   { id: 'word_chain', name: 'Word Chain' },
-  { id: 'memory_game', name: 'Memory Game' }
+  { id: 'memory_game', name: 'Memory Game' },
+  { id: 'squid_glass', name: 'Squid Glass' }
 ];
 
 const CreateGameForm = ({ onClose }) => {

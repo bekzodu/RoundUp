@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, SportsEsports, History, Settings, Logout, Add } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight, SportsEsports, History, Settings, Logout, Add, Home } from '@mui/icons-material';
 import '../styles/Sidebar.css';
 import { auth, db } from '../config/firebase';
 import { signOut } from 'firebase/auth';
@@ -48,6 +48,14 @@ const Sidebar = ({ isExpanded, setIsExpanded, isAdmin }) => {
       </button>
 
       <div className="sidebar-content">
+        <button 
+          className={`sidebar-button ${location.pathname === '/home' ? 'active' : ''}`}
+          onClick={() => navigate('/home')}
+        >
+          <Home />
+          {isExpanded && <span>Home</span>}
+        </button>
+
         <button 
           className={`sidebar-button ${location.pathname === '/active-games' ? 'active' : ''}`}
           onClick={() => navigate('/active-games')}

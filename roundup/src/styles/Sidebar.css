@@ -102,4 +102,36 @@
 
 .sidebar-button.admin-button svg {
   color: #4a90e2;
+}
+
+.sidebar-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  background: none;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.sidebar-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-btn svg {
+  font-size: 20px;
+  min-width: 20px;
+}
+
+.sidebar-btn span {
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.sidebar.expanded .sidebar-btn span {
+  opacity: 1;
 } 
