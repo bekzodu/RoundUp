@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../config/firebase';
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, deleteField } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, deleteField, increment } from 'firebase/firestore';
 import { Close } from '@mui/icons-material';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import '../styles/GameCard.css';
@@ -54,14 +54,12 @@ const GameCard = ({ game }) => {
   const handleConfirmJoin = async () => {
     setLoading(true);
     try {
-      // Get user's username from the users collection
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('email', '==', auth.currentUser.email));
       const querySnapshot = await getDocs(q);
       const userDoc = querySnapshot.docs[0];
-      const username = userDoc.id; // document ID is the username
+      const username = userDoc.id;
       
-      // Create the game entry
       const gameEntry = {
         gameId: game.id,
         result: 'pending',
@@ -75,10 +73,10 @@ const GameCard = ({ game }) => {
         [`currentGames.${game.id}`]: gameEntry
       });
 
-      // Update game participants with username instead of email
+      // Update game participants and prize pool
       await updateDoc(doc(db, 'games', game.id), {
-        currentPlayers: game.currentPlayers + 1,
-        participants: arrayUnion(username)
+        participants: arrayUnion(username),
+        prizePool: increment(game.entryFee)
       });
 
       navigate(`/game/${game.id}`);
@@ -111,7 +109,6 @@ const GameCard = ({ game }) => {
 
       // Update game document to remove the user and decrease player count
       await updateDoc(doc(db, 'games', game.id), {
-        currentPlayers: game.currentPlayers - 1,
         participants: arrayRemove(username)
       });
 

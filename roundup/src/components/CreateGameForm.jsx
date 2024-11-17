@@ -36,7 +36,8 @@ const CreateGameForm = ({ onClose }) => {
         isActive: false,
         participants: [], // Array to store player IDs who joined
         winners: [], // Array to store winners
-        prizePool: gameData.entryFee * gameData.maxPlayers // Total possible prize pool
+        prizePool: 0, // Initialize at 0
+        status: 'published'
       });
 
       window.dispatchEvent(new CustomEvent('show-toast', {

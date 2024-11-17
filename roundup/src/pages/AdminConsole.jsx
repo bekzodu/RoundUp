@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../config/firebase';
-import { collection, query, where, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, deleteDoc, doc, addDoc, arrayUnion, increment } from 'firebase/firestore';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import CreateGameForm from '../components/CreateGameForm';
@@ -85,6 +85,30 @@ const AdminConsole = () => {
       } catch (error) {
         console.error('Error deleting game:', error);
       }
+    }
+  };
+
+  const handleCreateGame = async (gameData) => {
+    try {
+      await addDoc(collection(db, 'games'), {
+        ...gameData,
+        status: 'draft',
+        currentPlayers: 0,
+        participants: [],
+        prizePool: 0,
+        createdAt: new Date().toISOString()
+      });
+
+      fetchGames();
+      
+      window.dispatchEvent(new CustomEvent('show-toast', {
+        detail: {
+          message: 'Game created successfully!',
+          type: 'success'
+        }
+      }));
+    } catch (error) {
+      console.error('Error creating game:', error);
     }
   };
 
