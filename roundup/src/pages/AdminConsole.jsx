@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../config/firebase';
-import { collection, query, where, getDocs, updateDoc, deleteDoc, doc, addDoc, arrayUnion, increment } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, deleteDoc, doc, addDoc, arrayUnion, increment, getDoc, deleteField, serverTimestamp, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { FaTrash } from 'react-icons/fa';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import CreateGameForm from '../components/CreateGameForm';
+import Modal from '../components/Modal';
+import GameNotification from '../components/GameNotification';
 import '../styles/AdminConsole.css';
 
 const AdminConsole = () => {
@@ -15,9 +18,27 @@ const AdminConsole = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [activeGames, setActiveGames] = useState([]);
+  const [selectedGame, setSelectedGame] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [globalNotifications, setGlobalNotifications] = useState([]);
 
   useEffect(() => {
     fetchGames();
+    fetchActiveGames();
+    const notificationsRef = collection(db, 'notifications');
+    const q = query(notificationsRef, orderBy('timestamp', 'desc'), limit(5));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const newNotifications = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setGlobalNotifications(newNotifications);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const fetchGames = async () => {
@@ -49,12 +70,39 @@ const AdminConsole = () => {
     }
   };
 
+  const fetchActiveGames = async () => {
+    try {
+      const gamesRef = collection(db, 'games');
+      const snapshot = await getDocs(gamesRef);
+      const games = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setActiveGames(games);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching games:', error);
+      setLoading(false);
+    }
+  };
+
   const handlePublish = async (gameId) => {
     try {
       const gameRef = doc(db, 'games', gameId);
+      const gameDoc = await getDoc(gameRef);
+      const gameData = gameDoc.data();
+      
       await updateDoc(gameRef, {
         status: 'published',
         publishedAt: new Date().toISOString()
+      });
+      
+      // Add notification to Firestore
+      await addDoc(collection(db, 'notifications'), {
+        message: `New game "${gameData.title}" is now available!`,
+        type: 'created',
+        gameId: gameId,
+        timestamp: serverTimestamp()
       });
       
       fetchGames();
@@ -74,7 +122,13 @@ const AdminConsole = () => {
     if (window.confirm('Are you sure you want to delete this game?')) {
       try {
         await deleteDoc(doc(db, 'games', gameId));
-        fetchGames();
+        
+        // Immediately update all game lists
+        setGames(prevGames => ({
+          draft: prevGames.draft.filter(game => game.id !== gameId),
+          active: prevGames.active.filter(game => game.id !== gameId),
+          ended: prevGames.ended.filter(game => game.id !== gameId)
+        }));
         
         window.dispatchEvent(new CustomEvent('show-toast', {
           detail: {
@@ -90,7 +144,8 @@ const AdminConsole = () => {
 
   const handleCreateGame = async (gameData) => {
     try {
-      await addDoc(collection(db, 'games'), {
+      // Create the game
+      const gameRef = await addDoc(collection(db, 'games'), {
         ...gameData,
         status: 'draft',
         currentPlayers: 0,
@@ -99,7 +154,16 @@ const AdminConsole = () => {
         createdAt: new Date().toISOString()
       });
 
+      // Add notification to Firestore
+      await addDoc(collection(db, 'notifications'), {
+        message: `New game "${gameData.title}" has been created!`,
+        type: 'created',
+        gameId: gameRef.id,
+        timestamp: serverTimestamp()
+      });
+
       fetchGames();
+      setShowCreateForm(false);
       
       window.dispatchEvent(new CustomEvent('show-toast', {
         detail: {
@@ -109,6 +173,81 @@ const AdminConsole = () => {
       }));
     } catch (error) {
       console.error('Error creating game:', error);
+    }
+  };
+
+  const handleDeleteClick = (game) => {
+    setSelectedGame(game);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      // 1. Get all users who are in this game
+      const usersRef = collection(db, 'users');
+      const usersSnapshot = await getDocs(usersRef);
+      const gameId = selectedGame.id;
+
+      // 2. Process each user
+      const userUpdates = usersSnapshot.docs.map(async (userDoc) => {
+        const userData = userDoc.data();
+        if (userData.currentGames && userData.currentGames[gameId]) {
+          // Refund entry fee to user
+          const refundAmount = selectedGame.entryFee;
+          const currentPoints = userData.points || 0;
+          
+          // Update user document
+          const userRef = doc(db, 'users', userDoc.id);
+          await updateDoc(userRef, {
+            points: currentPoints + refundAmount,
+            [`currentGames.${gameId}`]: deleteField()
+          });
+        }
+      });
+
+      // Wait for all user updates to complete
+      await Promise.all(userUpdates);
+
+      // 3. Delete the game document
+      const gameRef = doc(db, 'games', gameId);
+      await deleteDoc(gameRef);
+
+      // 4. Update all game lists immediately
+      setGames(prevGames => ({
+        draft: prevGames.draft.filter(game => game.id !== gameId),
+        active: prevGames.active.filter(game => game.id !== gameId),
+        ended: prevGames.ended.filter(game => game.id !== gameId)
+      }));
+
+      // 5. Close modal and reset selected game
+      setShowDeleteModal(false);
+      setSelectedGame(null);
+
+      // 6. Show success message
+      window.dispatchEvent(new CustomEvent('show-toast', {
+        detail: {
+          message: 'Game deleted successfully!',
+          type: 'success'
+        }
+      }));
+
+      
+      // Add notification with game title
+      await addDoc(collection(db, 'notifications'), {
+        message: `Game "${selectedGame.title}" is deleted!`,
+        type: 'deleted',
+        timestamp: serverTimestamp()
+      });
+
+    } catch (error) {
+      console.error('Error deleting game:', error);
+      // Show error message
+      window.dispatchEvent(new CustomEvent('show-toast', {
+        detail: {
+          message: 'Error deleting game',
+          type: 'error'
+        }
+      }));
     }
   };
 
@@ -125,22 +264,31 @@ const AdminConsole = () => {
               <p>Entry Fee: {game.entryFee} Points</p>
               <p>Prize Pool: {game.prizePool} Points</p>
             </div>
-            {showActions && (
-              <div className="game-actions">
+            <div className="game-actions">
+              {showActions ? (
+                <>
+                  <button 
+                    className="publish-btn"
+                    onClick={() => handlePublish(game.id)}
+                  >
+                    Publish
+                  </button>
+                  <button 
+                    className="delete-btn"
+                    onClick={() => handleDelete(game.id)}
+                  >
+                    Delete
+                  </button>
+                </>
+              ) : (
                 <button 
-                  className="publish-btn"
-                  onClick={() => handlePublish(game.id)}
+                  className="delete-button"
+                  onClick={() => handleDeleteClick(game)}
                 >
-                  Publish
+                  <FaTrash />
                 </button>
-                <button 
-                  className="delete-btn"
-                  onClick={() => handleDelete(game.id)}
-                >
-                  Delete
-                </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         ))
       ) : (
@@ -148,6 +296,18 @@ const AdminConsole = () => {
       )}
     </div>
   );
+
+  const addNotification = async (message, type) => {
+    try {
+      await addDoc(collection(db, 'notifications'), {
+        message,
+        type,
+        timestamp: serverTimestamp()
+      });
+    } catch (error) {
+      console.error('Error adding notification:', error);
+    }
+  };
 
   return (
     <>
@@ -193,6 +353,48 @@ const AdminConsole = () => {
           )}
         </main>
       </div>
+
+      {showDeleteModal && (
+        <Modal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+        >
+          <div className="delete-modal-content">
+            <h2>Delete Game</h2>
+            <p>Are you sure you want to delete this game?</p>
+            <p>This will:</p>
+            <ul>
+              <li>Remove the game completely</li>
+              <li>Refund entry fees to all participants</li>
+              <li>Remove the game from all users' active games</li>
+            </ul>
+            <div className="modal-buttons">
+              <button 
+                className="cancel-button"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="confirm-button"
+                onClick={handleDeleteConfirm}
+              >
+                Confirm Delete
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {globalNotifications.map(notification => (
+        <GameNotification
+          key={notification.id}
+          message={notification.message}
+          type={notification.type}
+          timestamp={notification.timestamp?.toDate()}
+          onClose={() => {}}
+        />
+      ))}
     </>
   );
 };

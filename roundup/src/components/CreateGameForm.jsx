@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db } from '../config/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import '../styles/CreateGameForm.css';
 
 const GAME_TYPES = [
@@ -29,15 +29,23 @@ const CreateGameForm = ({ onClose }) => {
     e.preventDefault();
     try {
       const gamesRef = collection(db, 'games');
-      await addDoc(gamesRef, {
+      const gameRef = await addDoc(gamesRef, {
         ...gameData,
         createdAt: new Date().toISOString(),
         currentPlayers: 0,
         isActive: false,
-        participants: [], // Array to store player IDs who joined
-        winners: [], // Array to store winners
-        prizePool: 0, // Initialize at 0
+        participants: [],
+        winners: [],
+        prizePool: 0,
         status: 'published'
+      });
+
+      // Add notification to Firestore
+      await addDoc(collection(db, 'notifications'), {
+        message: `New game "${gameData.title}" has been created!`,
+        type: 'created',
+        gameId: gameRef.id,
+        timestamp: serverTimestamp()
       });
 
       window.dispatchEvent(new CustomEvent('show-toast', {

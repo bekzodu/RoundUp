@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db, auth } from '../config/firebase';
-import { doc, getDoc, updateDoc, arrayRemove, deleteField, arrayUnion } from 'firebase/firestore';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayRemove, deleteField, arrayUnion, increment } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import Navbar from '../components/Navbar';
 import SquidGlassGame from '../games/SquidGlassGame';
 import '../styles/GamePage.css';
+import { generateBlocks } from '../utils/gameUtils';
 
 const GamePage = () => {
   const { gameId } = useParams();
