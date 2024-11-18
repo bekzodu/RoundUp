@@ -7,13 +7,15 @@
 .game-card {
   background: linear-gradient(145deg, #2a2a2a, #333333);
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 2rem;
   margin: 1rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.1);
   max-width: 400px;
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .game-card:hover {
@@ -23,13 +25,53 @@
 }
 
 .game-card h3 {
-  color: #ffffff;
-  font-size: 2.2rem;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-size: 3.2rem;
+  font-weight: 900;
   text-align: center;
-  padding: 0.8rem 0;
-  margin: 0;
+  margin: 0.5rem 0 1.5rem;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  background: linear-gradient(
+    135deg,
+    #fff 0%,
+    #e0e0e0 50%,
+    #ffffff 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+  position: relative;
+  transition: transform 0.3s ease;
+  cursor: default;
+}
+
+.game-card h3::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transform: translateX(-100%);
+  animation: shine 3s infinite;
+}
+
+@keyframes shine {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.game-card h3:hover {
+  transform: scale(1.02);
 }
 
 .game-details {
@@ -50,24 +92,33 @@
 }
 
 .join-btn {
-  margin-top: 1rem;
-  padding: 1rem;
+  margin-top: 2rem;
+  padding: 1.2rem;
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
   border-radius: 12px;
   background: linear-gradient(45deg, #4a90e2, #357abd);
   border: none;
   color: white;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 1.1rem;
   letter-spacing: 0.5px;
   cursor: pointer;
   transition: all 0.3s ease;
   text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  position: relative;
+  overflow: hidden;
 }
 
 .join-btn:not(.disabled):hover {
   background: linear-gradient(45deg, #357abd, #2868a9);
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(74, 144, 226, 0.3);
+  box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4);
 }
 
 .join-btn.disabled {
@@ -217,12 +268,15 @@
 }
 
 .multiplayer-badge {
-  background: #4a90e2;
+  background: linear-gradient(45deg, #ff9800, #f57c00);
   color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.8em;
-  margin-left: 8px;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9em;
+  margin: 0.8rem 0;
+  display: inline-block;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
 }
 
 .game-header {
@@ -304,8 +358,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.8rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 1.1rem;
 }
 
 .info-row:last-child {

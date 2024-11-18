@@ -24,19 +24,22 @@ const AdminConsole = () => {
     try {
       const gamesRef = collection(db, 'games');
             
-      // Fetch both pending and active games
+      // Fetch pending, active, and published games
       const pendingQuery = query(gamesRef, where('status', '==', 'pending'));
       const activeQuery = query(gamesRef, where('status', '==', 'active'));
+      const publishedQuery = query(gamesRef, where('status', '==', 'published'));
       
-      const [pendingSnapshot, activeSnapshot] = await Promise.all([
+      const [pendingSnapshot, activeSnapshot, publishedSnapshot] = await Promise.all([
         getDocs(pendingQuery),
-        getDocs(activeQuery)
+        getDocs(activeQuery),
+        getDocs(publishedQuery)
       ]);
       
       // Combine and set all games
       const allGames = [
         ...pendingSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-        ...activeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        ...activeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+        ...publishedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       ];
       
       setGames(allGames);
