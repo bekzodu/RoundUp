@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import GameCard from '../components/GameCard';
-import { db } from '../config/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 import '../styles/Home.css';
 
 const Home = () => {
@@ -12,24 +12,19 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchActiveGames = async () => {
-      try {
-        const gamesRef = collection(db, 'games');
-        const gamesSnapshot = await getDocs(gamesRef);
-        
-        const games = gamesSnapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter(game => game.status !== 'draft' && game.status !== 'completed'); // Exclude draft and completed games
-        
-        setActiveGames(games);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching games:', error);
-        setLoading(false);
-      }
-    };
+    const gamesRef = collection(db, 'games');
+    const q = query(gamesRef, where('status', 'in', ['published', 'active'])); // Listen to published and active games
 
-    fetchActiveGames();
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const games = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setActiveGames(games);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching games:', error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe(); // Cleanup listener on component unmount
   }, []);
 
   return (
@@ -63,6 +58,6 @@ const Home = () => {
       </div>
     </>
   );
-};
+}
 
 export default Home; 

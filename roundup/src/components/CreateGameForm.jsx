@@ -4,24 +4,16 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import '../styles/CreateGameForm.css';
 
 const GAME_TYPES = [
-  { id: 'soccer_score', name: 'Soccer Score' },
-  { id: 'luck_game', name: 'Luck Game' },
-  { id: 'high_low', name: 'High Low' },
-  { id: 'number_guess', name: 'Number Guess' },
-  { id: 'card_match', name: 'Card Match' },
-  { id: 'word_chain', name: 'Word Chain' },
-  { id: 'memory_game', name: 'Memory Game' },
   { id: 'squid_glass', name: 'Squid Glass' }
 ];
 
 const CreateGameForm = ({ onClose }) => {
   const [gameData, setGameData] = useState({
     title: '',
-    minPlayers: 2,
-    maxPlayers: 10,
-    entryFee: 100, // Default entry fee in points
+    minPlayers: 1,
+    entryFee: 100,
     rounds: 5,
-    gameType: 'soccer_score',
+    gameType: 'squid_glass',
     status: 'draft'
   });
 
@@ -85,20 +77,9 @@ const CreateGameForm = ({ onClose }) => {
             <label>Min Players</label>
             <input
               type="number"
-              min="2"
+              min="1"
               value={gameData.minPlayers}
               onChange={(e) => setGameData({ ...gameData, minPlayers: parseInt(e.target.value) })}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Max Players</label>
-            <input
-              type="number"
-              min="2"
-              value={gameData.maxPlayers}
-              onChange={(e) => setGameData({ ...gameData, maxPlayers: parseInt(e.target.value) })}
               required
             />
           </div>
