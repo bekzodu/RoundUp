@@ -9,11 +9,7 @@ import Modal from '../components/Modal';
 import '../styles/AdminConsole.css';
 
 const AdminConsole = () => {
-  const [games, setGames] = useState({
-    draft: [],
-    active: [],
-    ended: []
-  });
+  const [games, setGames] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -22,47 +18,28 @@ const AdminConsole = () => {
 
   useEffect(() => {
     fetchGames();
-    fetchActiveGames();
   }, []);
 
   const fetchGames = async () => {
     try {
       const gamesRef = collection(db, 'games');
+            
+      // Fetch both pending and active games
+      const pendingQuery = query(gamesRef, where('status', '==', 'pending'));
+      const activeQuery = query(gamesRef, where('status', '==', 'active'));
       
-      // Fetch draft games
-      const draftQuery = query(gamesRef, where('status', '==', 'draft'));
-      const draftSnapshot = await getDocs(draftQuery);
+      const [pendingSnapshot, activeSnapshot] = await Promise.all([
+        getDocs(pendingQuery),
+        getDocs(activeQuery)
+      ]);
       
-      // Fetch active games
-      const activeQuery = query(gamesRef, where('status', '==', 'published'));
-      const activeSnapshot = await getDocs(activeQuery);
+      // Combine and set all games
+      const allGames = [
+        ...pendingSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+        ...activeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      ];
       
-      // Fetch ended games
-      const endedQuery = query(gamesRef, where('status', '==', 'completed'));
-      const endedSnapshot = await getDocs(endedQuery);
-      
-      setGames({
-        draft: draftSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-        active: activeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-        ended: endedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      });
-      
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching games:', error);
-      setLoading(false);
-    }
-  };
-
-  const fetchActiveGames = async () => {
-    try {
-      const gamesRef = collection(db, 'games');
-      const snapshot = await getDocs(gamesRef);
-      const games = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setActiveGames(games);
+      setGames(allGames);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching games:', error);
@@ -77,15 +54,15 @@ const AdminConsole = () => {
       const gameData = gameDoc.data();
       
       await updateDoc(gameRef, {
-        status: 'published',
-        publishedAt: new Date().toISOString()
+        status: 'pending',
+        pendingAt: new Date().toISOString()
       });
       
       fetchGames();
       
       window.dispatchEvent(new CustomEvent('show-toast', {
         detail: {
-          message: 'Game published successfully!',
+          message: 'Game pended successfully!',
           type: 'success'
         }
       }));
@@ -100,11 +77,7 @@ const AdminConsole = () => {
         await deleteDoc(doc(db, 'games', gameId));
         
         // Immediately update all game lists
-        setGames(prevGames => ({
-          draft: prevGames.draft.filter(game => game.id !== gameId),
-          active: prevGames.active.filter(game => game.id !== gameId),
-          ended: prevGames.ended.filter(game => game.id !== gameId)
-        }));
+        setGames(prevGames => prevGames.filter(game => game.id !== gameId));
         
         window.dispatchEvent(new CustomEvent('show-toast', {
           detail: {
@@ -180,11 +153,7 @@ const AdminConsole = () => {
       await deleteDoc(gameRef);
 
       // 4. Update all game lists immediately
-      setGames(prevGames => ({
-        draft: prevGames.draft.filter(game => game.id !== gameId),
-        active: prevGames.active.filter(game => game.id !== gameId),
-        ended: prevGames.ended.filter(game => game.id !== gameId)
-      }));
+      setGames(prevGames => prevGames.filter(game => game.id !== gameId));
 
       // 5. Close modal and reset selected game
       setSelectedGame(null);
@@ -212,46 +181,67 @@ const AdminConsole = () => {
   const renderGamesList = (gamesList, title, showActions = false) => (
     <div className="games-list">
       <h2>{title}</h2>
-      {gamesList.length > 0 ? (
-        gamesList.map(game => (
-          <div key={game.id} className="game-item">
-            <div className="game-info">
-              <h3>{game.title}</h3>
-              <p>Type: {game.gameType}</p>
-              <p>Players: {game.currentPlayers}/{game.maxPlayers}</p>
-              <p>Entry Fee: {game.entryFee} Points</p>
-              <p>Prize Pool: {game.prizePool} Points</p>
-            </div>
-            <div className="game-actions">
-              {showActions ? (
-                <>
+      <div className="games-grid">
+        {gamesList.length > 0 ? (
+          gamesList.map(game => (
+            <div key={game.id} className="game-card">
+              <div className="game-header">
+                <h3>{game.title}</h3>
+                <span className={`status-badge ${game.status}`}>
+                  {game.status}
+                </span>
+              </div>
+              
+              <div className="game-details">
+                <div className="detail-row">
+                  <span className="label">Type:</span>
+                  <span className="value">{game.gameType}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="label">Players:</span>
+                  <span className="value">{game.participants?.length || 0}/{game.maxPlayers}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="label">Entry Fee:</span>
+                  <span className="value highlight-blue">{game.entryFee.toLocaleString()} Points</span>
+                </div>
+                <div className="detail-row">
+                  <span className="label">Prize Pool:</span>
+                  <span className="value highlight-green">{game.prizePool.toLocaleString()} Points</span>
+                </div>
+              </div>
+
+              <div className="game-actions">
+                {showActions ? (
+                  <>
+                    <button 
+                      className="action-btn publish"
+                      onClick={() => handlePublish(game.id)}
+                    >
+                      Publish
+                    </button>
+                    <button 
+                      className="action-btn delete"
+                      onClick={() => handleDeleteClick(game)}
+                    >
+                      Delete
+                    </button>
+                  </>
+                ) : (
                   <button 
-                    className="publish-btn"
-                    onClick={() => handlePublish(game.id)}
+                    className="action-btn delete"
+                    onClick={() => handleDeleteClick(game)}
                   >
-                    Publish
+                    <FaTrash /> Delete
                   </button>
-                  <button 
-                    className="delete-btn"
-                    onClick={() => handleDelete(game.id)}
-                  >
-                    Delete
-                  </button>
-                </>
-              ) : (
-                <button 
-                  className="delete-button"
-                  onClick={() => handleDeleteClick(game)}
-                >
-                  <FaTrash />
-                </button>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        ))
-      ) : (
-        <p className="no-games">No {title.toLowerCase()} at the moment.</p>
-      )}
+          ))
+        ) : (
+          <p className="no-games">No {title.toLowerCase()} at the moment.</p>
+        )}
+      </div>
     </div>
   );
 
@@ -292,9 +282,7 @@ const AdminConsole = () => {
             <div className="loading-message">Loading games...</div>
           ) : (
             <div className="games-sections">
-              {renderGamesList(games.draft, 'Draft Games', true)}
-              {renderGamesList(games.active, 'Active Games')}
-              {renderGamesList(games.ended, 'Ended Games')}
+              {renderGamesList(games, 'Games')}
             </div>
           )}
         </main>
