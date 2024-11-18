@@ -8,9 +8,7 @@ import SquidGlassGame from '../games/SquidGlassGame';
 import '../styles/GamePage.css';
 import { generateBlocks } from '../utils/gameUtils';
 
-const GamePage = () => {
-  const { gameId } = useParams();
-  const navigate = useNavigate();
+const useGameData = (gameId) => {
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -46,6 +44,14 @@ const GamePage = () => {
 
     fetchUserAndGame();
   }, [gameId]);
+
+  return { game, loading, error, username };
+};
+
+const GamePage = () => {
+  const { gameId } = useParams();
+  const navigate = useNavigate();
+  const { game, loading, error, username } = useGameData(gameId);
 
   const handleGameExit = async () => {
     try {

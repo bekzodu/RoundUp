@@ -73,9 +73,17 @@ const GameCard = ({ game }) => {
         [`currentGames.${game.id}`]: gameEntry
       });
 
+      // Update game participants with player data
+      const participant = {
+        id: username,
+        ready: false,
+        isAlive: true,
+        currentPosition: 0
+      };
+
       // Update game participants and prize pool
       await updateDoc(doc(db, 'games', game.id), {
-        participants: arrayUnion(username),
+        participants: arrayUnion(participant),
         prizePool: increment(game.entryFee)
       });
 
@@ -138,15 +146,78 @@ const GameCard = ({ game }) => {
     return game.currentPlayers * game.entryFee;
   };
 
+  const getGameStatus = () => {
+    if (game.minPlayers > 1) {
+      const currentPlayers = game.participants?.length || 0;
+      if (game.status === 'waiting' || 
+          (game.status === 'published' && currentPlayers < game.minPlayers)) {
+        return `Waiting (${currentPlayers}/${game.minPlayers})`;
+      }
+    }
+    return game.status;
+  };
+
+  const getJoinButtonText = () => {
+    if (hasJoined) {
+      return game.status === 'active' ? 'Play' : 'Leave';
+    }
+    if (game.minPlayers > 1) {
+      const currentPlayers = game.participants?.length || 0;
+      if (currentPlayers < game.minPlayers) {
+        return 'Join Queue';
+      }
+    }
+    return 'Join';
+  };
+
+  const formatGameType = (type) => {
+    return type.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+  };
+
+  const handleDelete = async () => {
+    try {
+      // Your existing delete logic without notification handling
+    } catch (error) {
+      console.error('Error deleting game:', error);
+    }
+  };
+
   return (
     <>
       <div className="game-card">
-        <h3>{game.title}</h3>
-        <div className="game-details">
-          <p>Type: {game.gameType}</p>
-          <p>Players: {game.currentPlayers}/{game.maxPlayers}</p>
-          <p>Entry Fee: {game.entryFee.toLocaleString()} Points</p>
-          <p>Prize Pool: {calculatePrizePool().toLocaleString()} Points</p>
+        <div className="game-info">
+          <div className="game-header">
+            <h3>{game.title}</h3>
+            {game.minPlayers > 1 && (
+              <div className="multiplayer-badge">
+                Multiplayer ({game.minPlayers} min)
+              </div>
+            )}
+          </div>
+          <div className="info-row">
+            <span>Status:</span>
+            <span className={`game-status ${game.status}`}>
+              {getGameStatus()}
+            </span>
+          </div>
+          <div className="info-row">
+            <span>Type:</span>
+            <span className="value">{formatGameType(game.gameType)}</span>
+          </div>
+          <div className="info-row">
+            <span>Players:</span>
+            <span className="value">{game.participants?.length || 0}</span>
+          </div>
+          <div className="info-row">
+            <span>Entry Fee:</span>
+            <span className="value">{game.entryFee.toLocaleString()} Points</span>
+          </div>
+          <div className="info-row">
+            <span>Prize Pool:</span>
+            <span className="value">{calculatePrizePool().toLocaleString()} Points</span>
+          </div>
         </div>
         <button 
           className={`join-btn ${game.currentPlayers >= game.maxPlayers ? 'disabled' : ''}`}

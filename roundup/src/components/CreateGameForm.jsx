@@ -7,14 +7,16 @@ const GAME_TYPES = [
   { id: 'squid_glass', name: 'Squid Glass' }
 ];
 
+const useFormValidation = () => {
+  // Centralize validation logic here
+};
+
 const CreateGameForm = ({ onClose }) => {
-  const [gameData, setGameData] = useState({
+  const [formData, setFormData] = useState({
     title: '',
-    minPlayers: 1,
-    entryFee: 100,
-    rounds: 5,
-    gameType: 'squid_glass',
-    status: 'draft'
+    players: 0,
+    gameType: '',
+    // ... other form fields
   });
 
   const handleSubmit = async (e) => {
@@ -22,7 +24,7 @@ const CreateGameForm = ({ onClose }) => {
     try {
       const gamesRef = collection(db, 'games');
       const gameRef = await addDoc(gamesRef, {
-        ...gameData,
+        ...formData,
         createdAt: new Date().toISOString(),
         currentPlayers: 0,
         isActive: false,
@@ -30,14 +32,6 @@ const CreateGameForm = ({ onClose }) => {
         winners: [],
         prizePool: 0,
         status: 'published'
-      });
-
-      // Add notification to Firestore
-      await addDoc(collection(db, 'notifications'), {
-        message: `New game "${gameData.title}" has been created!`,
-        type: 'created',
-        gameId: gameRef.id,
-        timestamp: serverTimestamp()
       });
 
       window.dispatchEvent(new CustomEvent('show-toast', {
@@ -66,8 +60,8 @@ const CreateGameForm = ({ onClose }) => {
           <label>Title</label>
           <input
             type="text"
-            value={gameData.title}
-            onChange={(e) => setGameData({ ...gameData, title: e.target.value })}
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             required
           />
         </div>
@@ -78,8 +72,8 @@ const CreateGameForm = ({ onClose }) => {
             <input
               type="number"
               min="1"
-              value={gameData.minPlayers}
-              onChange={(e) => setGameData({ ...gameData, minPlayers: parseInt(e.target.value) })}
+              value={formData.players}
+              onChange={(e) => setFormData({ ...formData, players: parseInt(e.target.value) })}
               required
             />
           </div>
@@ -92,8 +86,8 @@ const CreateGameForm = ({ onClose }) => {
               type="number"
               min="0"
               step="10"
-              value={gameData.entryFee}
-              onChange={(e) => setGameData({ ...gameData, entryFee: parseInt(e.target.value) })}
+              value={formData.entryFee}
+              onChange={(e) => setFormData({ ...formData, entryFee: parseInt(e.target.value) })}
               required
             />
           </div>
@@ -103,8 +97,8 @@ const CreateGameForm = ({ onClose }) => {
             <input
               type="number"
               min="1"
-              value={gameData.rounds}
-              onChange={(e) => setGameData({ ...gameData, rounds: parseInt(e.target.value) })}
+              value={formData.rounds}
+              onChange={(e) => setFormData({ ...formData, rounds: parseInt(e.target.value) })}
               required
             />
           </div>
@@ -113,8 +107,8 @@ const CreateGameForm = ({ onClose }) => {
         <div className="form-group">
           <label>Game Type</label>
           <select
-            value={gameData.gameType}
-            onChange={(e) => setGameData({ ...gameData, gameType: e.target.value })}
+            value={formData.gameType}
+            onChange={(e) => setFormData({ ...formData, gameType: e.target.value })}
             required
           >
             {GAME_TYPES.map(type => (

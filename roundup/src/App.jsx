@@ -10,7 +10,6 @@ import Welcome from './pages/Welcome';
 import AdminConsole from './pages/AdminConsole';
 import GamePage from './pages/GamePage';
 import ActiveGames from './pages/ActiveGames';
-import NotificationListener from './components/NotificationListener';
 
 function App() {
   const [toast, setToast] = useState(null);
@@ -66,7 +65,6 @@ function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
       </Router>
-      <NotificationListener />
       {toast && (
         <Toast
           message={toast.message}

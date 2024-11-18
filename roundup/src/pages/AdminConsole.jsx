@@ -6,7 +6,6 @@ import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import CreateGameForm from '../components/CreateGameForm';
 import Modal from '../components/Modal';
-import GameNotification from '../components/GameNotification';
 import '../styles/AdminConsole.css';
 
 const AdminConsole = () => {
@@ -20,25 +19,10 @@ const AdminConsole = () => {
   const [loading, setLoading] = useState(true);
   const [activeGames, setActiveGames] = useState([]);
   const [selectedGame, setSelectedGame] = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [globalNotifications, setGlobalNotifications] = useState([]);
 
   useEffect(() => {
     fetchGames();
     fetchActiveGames();
-    const notificationsRef = collection(db, 'notifications');
-    const q = query(notificationsRef, orderBy('timestamp', 'desc'), limit(5));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const newNotifications = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setGlobalNotifications(newNotifications);
-    });
-
-    return () => unsubscribe();
   }, []);
 
   const fetchGames = async () => {
@@ -97,14 +81,6 @@ const AdminConsole = () => {
         publishedAt: new Date().toISOString()
       });
       
-      // Add notification to Firestore
-      await addDoc(collection(db, 'notifications'), {
-        message: `New game "${gameData.title}" is now available!`,
-        type: 'created',
-        gameId: gameId,
-        timestamp: serverTimestamp()
-      });
-      
       fetchGames();
       
       window.dispatchEvent(new CustomEvent('show-toast', {
@@ -154,14 +130,6 @@ const AdminConsole = () => {
         createdAt: new Date().toISOString()
       });
 
-      // Add notification to Firestore
-      await addDoc(collection(db, 'notifications'), {
-        message: `New game "${gameData.title}" has been created!`,
-        type: 'created',
-        gameId: gameRef.id,
-        timestamp: serverTimestamp()
-      });
-
       fetchGames();
       setShowCreateForm(false);
       
@@ -178,7 +146,6 @@ const AdminConsole = () => {
 
   const handleDeleteClick = (game) => {
     setSelectedGame(game);
-    setShowDeleteModal(true);
   };
 
   const handleDeleteConfirm = async () => {
@@ -220,7 +187,6 @@ const AdminConsole = () => {
       }));
 
       // 5. Close modal and reset selected game
-      setShowDeleteModal(false);
       setSelectedGame(null);
 
       // 6. Show success message
@@ -230,14 +196,6 @@ const AdminConsole = () => {
           type: 'success'
         }
       }));
-
-      
-      // Add notification with game title
-      await addDoc(collection(db, 'notifications'), {
-        message: `Game "${selectedGame.title}" is deleted!`,
-        type: 'deleted',
-        timestamp: serverTimestamp()
-      });
 
     } catch (error) {
       console.error('Error deleting game:', error);
@@ -297,18 +255,6 @@ const AdminConsole = () => {
     </div>
   );
 
-  const addNotification = async (message, type) => {
-    try {
-      await addDoc(collection(db, 'notifications'), {
-        message,
-        type,
-        timestamp: serverTimestamp()
-      });
-    } catch (error) {
-      console.error('Error adding notification:', error);
-    }
-  };
-
   return (
     <>
       <Navbar />
@@ -354,10 +300,10 @@ const AdminConsole = () => {
         </main>
       </div>
 
-      {showDeleteModal && (
+      {selectedGame && (
         <Modal
-          isOpen={showDeleteModal}
-          onClose={() => setShowDeleteModal(false)}
+          isOpen={selectedGame !== null}
+          onClose={() => setSelectedGame(null)}
         >
           <div className="delete-modal-content">
             <h2>Delete Game</h2>
@@ -371,7 +317,7 @@ const AdminConsole = () => {
             <div className="modal-buttons">
               <button 
                 className="cancel-button"
-                onClick={() => setShowDeleteModal(false)}
+                onClick={() => setSelectedGame(null)}
               >
                 Cancel
               </button>
@@ -385,16 +331,6 @@ const AdminConsole = () => {
           </div>
         </Modal>
       )}
-
-      {globalNotifications.map(notification => (
-        <GameNotification
-          key={notification.id}
-          message={notification.message}
-          type={notification.type}
-          timestamp={notification.timestamp?.toDate()}
-          onClose={() => {}}
-        />
-      ))}
     </>
   );
 };
