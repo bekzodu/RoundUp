@@ -151,11 +151,12 @@ const GameCard = ({ game }) => {
         <button 
           className={`join-btn ${game.currentPlayers >= game.maxPlayers ? 'disabled' : ''}`}
           onClick={handleJoinClick}
-          disabled={!hasJoined && game.currentPlayers >= game.maxPlayers}
+          disabled={!hasJoined && (game.currentPlayers >= game.maxPlayers || game.status === 'active')}
         >
           <span className="btn-text">
             {hasJoined ? 'Go Back' : 
-              game.currentPlayers >= game.maxPlayers ? 'Full' : 'Join Game'}
+              game.currentPlayers >= game.maxPlayers ? 'Full' : 
+              game.status === 'active' ? 'In Progress' : 'Join Game'}
           </span>
           <span className="btn-icon">→</span>
         </button>

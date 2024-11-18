@@ -10,6 +10,7 @@ const Navbar = () => {
   const [points, setPoints] = useState(0);
   const [displayedPoints, setDisplayedPoints] = useState(0);
   const user = auth.currentUser;
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     let unsubscribe;
@@ -62,11 +63,19 @@ const Navbar = () => {
       </div>
 
       <div className="navbar-section center">
-        <div className="points-display">
-          <span className="points-label">Points:</span>
-          <span className={`points-value ${points !== displayedPoints ? 'updating' : ''}`}>
-            {displayedPoints}
-          </span>
+        <div 
+          className={`score-container ${isHovered ? 'expanded' : ''}`}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <div className="score">
+            <div className="points-container">
+            points  <span className="points-number">{points}</span> 
+            </div>
+            <div className="score-expanded">
+              <button className="deposit-btn">Deposit</button>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -15,15 +15,13 @@ const Home = () => {
     const fetchActiveGames = async () => {
       try {
         const gamesRef = collection(db, 'games');
-        const q = query(gamesRef, where('status', '==', 'published'));
-        const querySnapshot = await getDocs(q);
+        const gamesSnapshot = await getDocs(gamesRef);
         
-        const gamesData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        const games = gamesSnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(game => game.status !== 'draft' && game.status !== 'completed'); // Exclude draft and completed games
         
-        setActiveGames(gamesData);
+        setActiveGames(games);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching games:', error);

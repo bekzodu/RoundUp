@@ -59,13 +59,13 @@
 .points-label {
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: bold;
 }
 
 .points-value {
   color: #4CAF50;
   font-weight: bold;
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   transition: all 0.3s ease;
 }
 
@@ -78,4 +78,85 @@
 .navbar-spacer {
   height: 60px;
   width: 100%;
+}
+
+.score-container {
+  position: relative;
+  cursor: pointer;
+  width: 200px;
+  height: 40px;
+}
+
+.score {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  position: absolute;
+  width: 100%;
+  box-sizing: border-box;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transform-origin: top;
+}
+
+.points-container {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+.points-number {
+  color: #4CAF50;
+}
+
+.score-container.expanded .score {
+  height: 100px;
+  background-color: #2a2a2a;
+}
+
+.score-expanded {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 15px;
+  width: 100%;
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease;
+  transition-delay: 0s;
+  z-index: 2;
+}
+
+.score-container.expanded .score-expanded {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0.1s;
+}
+
+.deposit-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  width: 120px;
+  cursor: pointer;
+}
+
+.deposit-btn:hover {
+  background-color: #000000;
+  transform: scale(1.05);
 }

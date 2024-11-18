@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db, auth } from '../config/firebase';
 import { doc, getDoc, updateDoc, arrayRemove, deleteField, arrayUnion } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import Navbar from '../components/Navbar';
 import SquidGlassGame from '../games/SquidGlassGame';
 import '../styles/GamePage.css';
@@ -47,27 +48,33 @@ const GamePage = () => {
 
   const handleGameExit = async () => {
     try {
-      const gameRef = doc(db, 'games', gameId);
-      const gameDoc = await getDoc(gameRef);
+      // Get user's username from email first
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', auth.currentUser.email));
+      const querySnapshot = await getDocs(q);
       
-      if (gameDoc.exists()) {
-        const gameData = gameDoc.data();
-        const updatedPlayerCount = Math.max(0, (gameData.playerCount || 0) - 1);
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
+        const username = userDoc.id;  // Get correct username
         
-        // Remove the user from participants array
-        await updateDoc(gameRef, {
-          participants: arrayRemove(username),
-          playerCount: updatedPlayerCount
-        });
+        const gameRef = doc(db, 'games', gameId);
+        const gameDoc = await getDoc(gameRef);
+        
+        if (gameDoc.exists()) {
+          // Remove the user from participants array
+          await updateDoc(gameRef, {
+            participants: arrayRemove(username)
+          });
 
-        // Remove game from user's currentGames
-        const userRef = doc(db, 'users', username);
-        await updateDoc(userRef, {
-          [`currentGames.${gameId}`]: deleteField()
-        });
+          // Remove game from user's currentGames using correct username
+          const userRef = doc(db, 'users', username);
+          await updateDoc(userRef, {
+            [`currentGames.${gameId}`]: deleteField()
+          });
+        }
+        
+        navigate('/active-games');
       }
-      
-      navigate('/active-games');
     } catch (error) {
       console.error('Error exiting game:', error);
     }

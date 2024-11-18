@@ -56,31 +56,12 @@
 }
 
 .status-badge {
-  padding: 4px 8px;
+  background-color: #4caf50;
+  color: white;
+  padding: 0.25rem 0.75rem;
   border-radius: 12px;
-  font-size: 0.8em;
-  font-weight: 600;
-  text-transform: capitalize;
-}
-
-.status-badge.active {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.status-badge.completed {
-  background-color: #2196F3;
-  color: white;
-}
-
-.status-badge.pending {
-  background-color: #FFC107;
-  color: black;
-}
-
-.status-badge.cancelled {
-  background-color: #f44336;
-  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .joined-date {

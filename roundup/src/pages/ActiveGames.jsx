@@ -25,26 +25,29 @@ const ActiveGames = () => {
           const username = userDoc.id;
           const currentGames = userData.currentGames || {};
           
-          const gamesPromises = Object.entries(currentGames)
-            .map(async ([gameId, gameEntry]) => {
-              const gameDoc = await getDoc(doc(db, 'games', gameId));
-              if (gameDoc.exists()) {
-                return {
-                  id: gameId,
-                  ...gameDoc.data(),
-                  userGameStatus: gameEntry.status,
-                  joinedAt: gameEntry.joinedAt,
-                  result: gameEntry.result,
-                  prizePool: gameDoc.data().currentPlayers * gameDoc.data().entryFee
-                };
-              }
-              return null;
-            });
+          console.log('Current Games Object:', currentGames);
+
+          const gamesPromises = Object.entries(currentGames).map(async ([gameId, gameEntry]) => {
+            const gameDoc = await getDoc(doc(db, 'games', gameId));
+            console.log('Game Doc:', gameId, gameDoc.data());
+            
+            if (gameDoc.exists()) {
+              return {
+                id: gameId,
+                ...gameDoc.data(),
+                userGameStatus: gameEntry.status,
+                joinedAt: gameEntry.joinedAt,
+                result: gameEntry.result,
+                prizePool: gameDoc.data().currentPlayers * gameDoc.data().entryFee
+              };
+            }
+            return null;
+          });
 
           const resolvedGames = (await Promise.all(gamesPromises))
-            .filter(game => game !== null)
-            .filter(game => game.status === 'published');
-            
+            .filter(game => game !== null);
+          
+          console.log('Resolved Games:', resolvedGames);
           setActiveGames(resolvedGames);
         }
         setLoading(false);
