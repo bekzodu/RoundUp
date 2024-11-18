@@ -6,6 +6,8 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth } from '../config/firebase';
 import '../styles/SquidGlassGame.css';
 import { animatePoints } from '../utils/animatePoints';
+import Sidebar from '../components/Sidebar';
+import { useLocation } from 'react-router-dom';
 
 const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
   const navigate = useNavigate();
@@ -36,6 +38,8 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
   const GLASSES_PER_ROW = 3;
   const BASE_POINTS = 10;
   const [isMultiplayer, setIsMultiplayer] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   const initializeGame = () => {
     const board = [];
@@ -79,9 +83,9 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
       if (snapshot.exists()) {
         const gameData = snapshot.data();
         setGameStatus(gameData.status);
-        setParticipants(gameData.participants || []);
-        setPlayerCount(gameData.participants?.length || 0);
-        setMinPlayers(gameData.minPlayers);
+        setParticipants(gameData.participants || {});
+        setPlayerCount(Object.keys(gameData.participants || {}).length);
+        setMinPlayers(gameData.minPlayers || 1);
         
         // Determine if this is a multiplayer game
         const isMulti = gameData.minPlayers > 1;
@@ -89,31 +93,22 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
 
         try {
           if (isMulti) {
-            // Check if current player is ready
-            const currentPlayer = gameData.participants?.find(p => p.id === userId);
+            // Multiplayer game logic remains the same
+            const currentPlayer = gameData.participants?.[userId];
             setIsReady(currentPlayer?.ready || false);
 
-            // Multiplayer game logic
-            if (gameData.participants?.length >= gameData.minPlayers && 
-                gameData.participants?.every(p => p.ready) &&
+            if (gameData.participants && 
+                Object.keys(gameData.participants).length >= gameData.minPlayers && 
+                Object.values(gameData.participants).every(p => p.ready) &&
                 (gameData.status === 'waiting' || gameData.status === 'published')) {
               await updateDoc(gameRef, {
                 status: 'active',
-                currentTurn: gameData.participants[0].id
-              });
-            }
-            // If we have players but not enough for active state
-            else if (gameData.participants?.length > 0 && 
-                     gameData.participants?.length < gameData.minPlayers && 
-                     gameData.status === 'published') {
-              await updateDoc(gameRef, {
-                status: 'waiting'
+                currentTurn: Object.keys(gameData.participants)[0]
               });
             }
           } else {
-            // Single player game logic
-            if (gameData.participants?.length === 1 && 
-                gameData.status === 'published') {
+            // Solo mode - start game immediately
+            if (gameData.status === 'published') {
               await updateDoc(gameRef, {
                 status: 'active'
               });
@@ -129,7 +124,7 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
   }, [gameId, userId]);
 
   const handleGlassClick = async (rowIndex, glassIndex) => {
-    if (gameStatus !== 'active') return;
+    if (isMultiplayer && gameStatus !== 'active') return;
     
     // For multiplayer games, check if it's player's turn
     if (isMultiplayer && currentTurn !== userId) {
@@ -200,6 +195,21 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
         [`participants.${userId}.currentPosition`]: currentPosition,
         [`participants.${userId}.isAlive`]: isCorrectGlass
       });
+    }
+
+    if (!isCorrectGlass) {
+      const glassElement = document.querySelector(
+        `.glass[data-row="${rowIndex}"][data-index="${glassIndex}"]`
+      );
+      if (glassElement) {
+        const shards = createGlassShards(glassElement);
+        shards.forEach(shard => glassElement.appendChild(shard));
+        
+        // Clean up shards after animation
+        setTimeout(() => {
+          shards.forEach(shard => shard.remove());
+        }, 1000);
+      }
     }
   };
 
@@ -283,20 +293,43 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
             [`currentGames.${gameId}`]: deleteField()
           });
 
-          // Decrease prize pool by entry fee
-          await updateDoc(gameRef, {
-            prizePool: increment(-gameData.entryFee),
-            participants: arrayRemove(username)
-          });
+          // Remove participant object from participants array
+          const participantToRemove = gameData.participants.find(p => p.id === username);
+          if (participantToRemove) {
+            // If it's a solo game, set status back to pending
+            const updateData = {
+              prizePool: increment(-gameData.entryFee),
+              participants: arrayRemove(participantToRemove)
+            };
+
+            // If solo game (minPlayers === 1), set status back to pending
+            if (gameData.minPlayers === 1) {
+              updateData.status = 'pending';
+            }
+
+            await updateDoc(gameRef, updateData);
+          }
         } else {
           // If user has played, just remove them from the game
           await updateDoc(doc(db, 'users', username), {
             [`currentGames.${gameId}`]: deleteField()
           });
 
-          await updateDoc(gameRef, {
-            participants: arrayRemove(username)
-          });
+          // Remove participant object from participants array
+          const participantToRemove = gameData.participants.find(p => p.id === username);
+          if (participantToRemove) {
+            // If it's a solo game, set status back to pending
+            const updateData = {
+              participants: arrayRemove(participantToRemove)
+            };
+
+            // If solo game (minPlayers === 1), set status back to pending
+            if (gameData.minPlayers === 1) {
+              updateData.status = 'pending';
+            }
+
+            await updateDoc(gameRef, updateData);
+          }
         }
       }
 
@@ -321,8 +354,6 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
 
   const handleCashout = async () => {
     try {
-      setShowCashoutAnimation(true);
-      
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('email', '==', auth.currentUser.email));
       const querySnapshot = await getDocs(q);
@@ -330,39 +361,39 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
       const username = userDoc.id;
       
       const currentUserPoints = userDoc.data().points || 0;
+      const pointsToAdd = currentPoints;  // Store current points before resetting
 
+      // Reset game immediately
+      initializeGame();
+      setCurrentPoints(0);
+      setCanCashout(false);
+      setShowPoints(false);
+      setDisabledRow(null);
+      setShowCashoutAnimation(false);
+
+      // Update user points
       await updateDoc(doc(db, 'users', username), {
-        points: increment(currentPoints)
+        points: increment(pointsToAdd)
       });
 
+      // Show points animation
       window.dispatchEvent(new CustomEvent('animate-points', {
         detail: {
           startValue: currentUserPoints,
-          endValue: currentUserPoints + currentPoints
+          endValue: currentUserPoints + pointsToAdd
         }
       }));
 
-      // Show animation and reset game
-      setTimeout(() => {
-        setShowCashoutAnimation(false);
-        // Reset game (same as handlePlayAgain)
-        initializeGame();
-        setCurrentPoints(0);
-        setCanCashout(false);
-        setShowPoints(false);
-        setDisabledRow(null);
-        
-        window.dispatchEvent(new CustomEvent('show-toast', {
-          detail: {
-            message: `Successfully cashed out ${currentPoints} points!`,
-            type: 'success'
-          }
-        }));
-      }, 2000);
+      // Show success message
+      window.dispatchEvent(new CustomEvent('show-toast', {
+        detail: {
+          message: `Successfully cashed out ${pointsToAdd} points!`,
+          type: 'success'
+        }
+      }));
 
     } catch (error) {
       console.error('Error cashing out:', error);
-      setShowCashoutAnimation(false);
       window.dispatchEvent(new CustomEvent('show-toast', {
         detail: {
           message: 'Error cashing out. Please try again.',
@@ -374,7 +405,20 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
 
   const handleShowHint = () => {
     setShowHint(true);
-    setTimeout(() => setShowHint(false), 1000); // Hide hint after 1 second
+    // Play a subtle sound effect (optional)
+    const hintSound = new Audio('/hint-sound.mp3'); // Add a subtle sound file
+    hintSound.volume = 0.3;
+    hintSound.play().catch(() => {}); // Catch and ignore if sound fails to play
+    
+    // Show toast notification
+    window.dispatchEvent(new CustomEvent('show-toast', {
+      detail: {
+        message: 'Hint: Watch for the golden glow!',
+        type: 'info'
+      }
+    }));
+    
+    setTimeout(() => setShowHint(false), 1500); // Increased duration for better visibility
   };
 
   const handleReadyUp = async () => {
@@ -417,195 +461,239 @@ const SquidGlassGame = ({ gameId, userId, onGameComplete, onGameExit }) => {
     }
   };
 
+  const createGlassShards = (element) => {
+    const rect = element.getBoundingClientRect();
+    const shardCount = 12;
+    const shards = [];
+
+    for (let i = 0; i < shardCount; i++) {
+      const shard = document.createElement('div');
+      shard.className = 'glass-shard';
+      
+      // Random size for each shard
+      const width = Math.random() * 30 + 20;
+      const height = Math.random() * 30 + 20;
+      
+      // Position shard relative to the broken glass
+      const startX = Math.random() * rect.width;
+      const startY = Math.random() * rect.height;
+      
+      // Calculate random trajectories
+      const tx = (Math.random() - 0.5) * 200;
+      const ty = Math.random() * 200 + 100;
+      const rot = (Math.random() - 0.5) * 360;
+      
+      Object.assign(shard.style, {
+        width: `${width}px`,
+        height: `${height}px`,
+        left: `${startX}px`,
+        top: `${startY}px`,
+        '--tx': `${tx}px`,
+        '--ty': `${ty}px`,
+        '--rot': `${rot}deg`,
+        animation: 'shardFall 1s ease-in forwards'
+      });
+      
+      shards.push(shard);
+    }
+    
+    return shards;
+  };
+
+  useEffect(() => {
+    const handleSidebarToggle = (e) => {
+      setIsSidebarOpen(e.detail.isOpen);
+    };
+
+    window.addEventListener('sidebar-toggle', handleSidebarToggle);
+    return () => window.removeEventListener('sidebar-toggle', handleSidebarToggle);
+  }, []);
+
   return (
-    <div className="squid-glass-game">
-      {isMultiplayer && (gameStatus === 'waiting' || gameStatus === 'published') ? (
-        <div className="waiting-room">
-          <h2>Waiting for Players</h2>
-          <div className="players-list">
-            {Object.entries(participants).map(([id, data]) => (
-              <div key={id} className="player-status">
-                <span>{id}</span>
-                <span className={data.ready ? 'ready' : 'not-ready'}>
-                  {data.ready ? '✅ Ready' : '⏳ Not Ready'}
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="players-needed">
-            {playerCount < minPlayers 
-              ? `Waiting for ${minPlayers - playerCount} more players...`
-              : 'All players must ready up to start!'}
-          </p>
-          {!isReady && (
-            <button 
-              className="ready-button" 
-              onClick={handleReadyUp}
-              disabled={playerCount < minPlayers}
-            >
-              Ready Up
-            </button>
-          )}
-        </div>
-      ) : (
-        <>
-          <div className="game-info">
-            <h2>Squid Glass Challenge</h2>
-            
-            {gameStatus === 'waiting' && (
-              <div className="waiting-status">
-                <p>
-                  Waiting for players<span className="waiting-dots"></span>
-                </p>
-                <p>Players: {playerCount}/{minPlayers}</p>
-              </div>
-            )}
-            
-            {gameStatus === 'active' && (
-              <>
-                <p>Choose the correct glass to proceed. Be careful - wrong choice means game over!</p>
-                <div className="progress">
-                  Progress: {currentPosition}/{TOTAL_ROWS}
+    <div className="game-page-container">
+      <Sidebar 
+        isExpanded={isSidebarExpanded} 
+        setIsExpanded={setIsSidebarExpanded}
+      />
+      <div className={`game-content ${isSidebarExpanded ? 'shifted' : ''}`}>
+        <div className="game-container">
+          <div className="game-content">
+            <div className="game-info">
+              <h2>Squid Glass Challenge</h2>
+              
+              {isMultiplayer && gameStatus === 'waiting' ? (
+                <div className="waiting-status">
+                  <p>
+                    Waiting for players<span className="waiting-dots"></span>
+                  </p>
+                  <p>Players: {playerCount}/{minPlayers}</p>
                 </div>
+              ) : (
+                <>
+                  <p>Choose the correct glass to proceed. Be careful - wrong choice means game over!</p>
+                  <div className="progress">
+                    Progress: {currentPosition}/{TOTAL_ROWS}
+                  </div>
+                </>
+              )}
+              
+              <div className="current-points">
+                Current Points: {currentPoints}
+              </div>
+              {canCashout && !isGameOver && (
+                <button className="cashout-btn" onClick={handleCashout}>
+                  Cash Out ({currentPoints} points)
+                </button>
+              )}
+              {isAdmin && !isGameOver && (
+                <button className="hint-btn" onClick={handleShowHint}>
+                  Show Hint
+                </button>
+              )}
+            </div>
+
+            {(!isMultiplayer || gameStatus === 'active') && (
+              <>
+                <div className="game-board">
+                  {isMultiplayer && (
+                    <div className="turn-indicator">
+                      {currentTurn === userId ? "Your turn!" : `Waiting for ${currentTurn}'s move...`}
+                    </div>
+                  )}
+                  {gameBoard.map((row, rowIndex) => {
+                    // Determine row visibility and position
+                    let rowStatus;
+                    if (rowIndex === currentPosition) {
+                      rowStatus = 'active';
+                    } else if (rowIndex === currentPosition - 1) {
+                      rowStatus = 'previous';
+                    } else if (rowIndex === currentPosition + 1) {
+                      rowStatus = 'future';
+                    } else if (rowIndex < currentPosition) {
+                      rowStatus = 'passed';
+                    } else {
+                      rowStatus = 'future';
+                    }
+
+                    // Only render rows that are nearby the current position
+                    if (Math.abs(rowIndex - currentPosition) > 2) return null;
+
+                    return (
+                      <div 
+                        key={rowIndex} 
+                        className={`glass-row ${rowStatus} ${
+                          highlightCurrent ? 'highlight-current' : ''
+                        } ${disabledRow === rowIndex ? 'disabled' : ''}`}
+                      >
+                        {row.map((isCorrect, glassIndex) => (
+                          <div
+                            key={glassIndex}
+                            data-number={glassIndex + 1}
+                            data-row={rowIndex}
+                            data-index={glassIndex}
+                            className={`glass ${
+                              selectedGlass?.row === rowIndex && selectedGlass?.glass === glassIndex
+                                ? isCorrect 
+                                  ? 'correct' 
+                                  : 'broken'
+                                : ''
+                            } ${
+                              rowIndex < currentPosition && isCorrect 
+                                ? 'passed-correct' 
+                                : ''
+                            } ${
+                              revealCorrect?.row === rowIndex && 
+                              revealCorrect?.glass === glassIndex && 
+                              isGameOver && 
+                              !hasWon
+                                ? 'reveal-correct'
+                                : ''
+                            } ${
+                              showHint && rowIndex === currentPosition && isCorrect ? 'hint' : ''
+                            }`}
+                            onClick={() => handleGlassClick(rowIndex, glassIndex)}
+                          >
+                            {selectedGlass?.row === rowIndex && 
+                             !isCorrect &&
+                             !hasWon && (
+                              <div className="x-mark">✕</div>
+                            )}
+                            {showPoints && 
+                             rowIndex === currentPosition && 
+                             selectedGlass?.glass === glassIndex && 
+                             isCorrect && (
+                              <div className="points-popup">+{currentPoints}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {showCashoutAnimation && (
+                  <div className="cashout-animation">
+                    <div className="points-collector">
+                      +{currentPoints} POINTS!
+                    </div>
+                  </div>
+                )}
+
+                {isGameOver && (
+                  <div className={`game-over ${hasWon ? 'won' : 'lost'}`}>
+                    <h2>{hasWon ? 'Congratulations!' : 'Game Over!'}</h2>
+                    <p>
+                      {hasWon 
+                        ? `You successfully crossed all the glass panels!`
+                        : `You made it across ${currentPosition} rows!`}
+                    </p>
+                    <div className="game-over-buttons">
+                      <button className="play-again-btn" onClick={handlePlayAgain}>
+                        Play Again
+                      </button>
+                      <button className="quit-btn" onClick={handleQuit}>
+                        Quit
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {celebrationActive && (
+                  <div className="celebration-container">
+                    <div className="celebration-content">
+                      <div className="jackpot-text">JACKPOT!</div>
+                      <div className="win-amount">+{currentPoints} POINTS!</div>
+                      <div className="confetti-container">
+                        {[...Array(50)].map((_, i) => (
+                          <div key={i} className="confetti"></div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </>
             )}
             
-            <div className="current-points">
-              Current Points: {currentPoints}
-            </div>
-            {canCashout && !isGameOver && (
-              <button className="cashout-btn" onClick={handleCashout}>
-                Cash Out ({currentPoints} points)
-              </button>
-            )}
-            {isAdmin && !isGameOver && (
-              <button className="hint-btn" onClick={handleShowHint}>
-                Show Hint
-              </button>
-            )}
+            <button onClick={handleQuit} className="quit-button">
+              Quit Game
+            </button>
           </div>
 
-          {gameStatus === 'active' && (
-            <>
-              <div className="game-board">
-                {isMultiplayer && (
-                  <div className="turn-indicator">
-                    {currentTurn === userId ? "Your turn!" : `Waiting for ${currentTurn}'s move...`}
+          {currentPoints > 0 && !isGameOver && (
+            <div className="multiplier-sidebar">
+              <div className="multiplier-content">
+                <div className="multiply-symbol">×2</div>
+                <div className="potential-win">
+                  <div className="potential-win-label">Next Win</div>
+                  <div className="potential-win-amount">
+                    {currentPoints * 2} pts
                   </div>
-                )}
-                {gameBoard.map((row, rowIndex) => (
-                  <div 
-                    key={rowIndex} 
-                    className={`glass-row ${
-                      rowIndex === currentPosition 
-                        ? `active ${highlightCurrent ? 'highlight-current' : ''}` 
-                        : rowIndex > currentPosition 
-                          ? 'locked' 
-                          : ''
-                    } ${disabledRow === rowIndex ? 'disabled' : ''}`}
-                  >
-                    {row.map((isCorrect, glassIndex) => (
-                      <div
-                        key={glassIndex}
-                        className={`glass ${
-                          selectedGlass?.row === rowIndex && selectedGlass?.glass === glassIndex
-                            ? isCorrect 
-                              ? 'correct' 
-                              : 'broken'
-                            : ''
-                        } ${
-                          rowIndex < currentPosition && isCorrect 
-                            ? 'passed-correct' 
-                            : ''
-                        } ${
-                          revealCorrect?.row === rowIndex && 
-                          revealCorrect?.glass === glassIndex && 
-                          isGameOver && 
-                          !hasWon
-                            ? 'reveal-correct'
-                            : ''
-                        } ${
-                          showHint && rowIndex === currentPosition && isCorrect ? 'hint' : ''
-                        }`}
-                        onClick={() => handleGlassClick(rowIndex, glassIndex)}
-                      >
-                        <div className="glass-surface"></div>
-                        <div className="glass-reflection"></div>
-                        {selectedGlass?.row === rowIndex && 
-                         !isCorrect &&
-                         !hasWon && (
-                          <div className="x-mark">✕</div>
-                        )}
-                        {showPoints && 
-                         rowIndex === currentPosition && 
-                         selectedGlass?.glass === glassIndex && 
-                         isCorrect && (
-                          <div className="points-popup">+{currentPoints}</div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ))}
+                </div>
               </div>
-
-              {currentPoints > 0 && !isGameOver && (
-                <div className="multiplier-indicator">
-                  <span className="multiply-symbol">×2</span>
-                  <span className="potential-win">
-                    Potential: {currentPoints * 2}
-                  </span>
-                </div>
-              )}
-
-              {showCashoutAnimation && (
-                <div className="cashout-animation">
-                  <div className="points-collector">
-                    +{currentPoints} POINTS!
-                  </div>
-                </div>
-              )}
-
-              {isGameOver && (
-                <div className={`game-over ${hasWon ? 'won' : 'lost'}`}>
-                  <h2>{hasWon ? 'Congratulations!' : 'Game Over!'}</h2>
-                  <p>
-                    {hasWon 
-                      ? `You successfully crossed all the glass panels!`
-                      : `You made it across ${currentPosition} rows!`}
-                  </p>
-                  <div className="game-over-buttons">
-                    <button className="play-again-btn" onClick={handlePlayAgain}>
-                      Play Again
-                    </button>
-                    <button className="quit-btn" onClick={handleQuit}>
-                      Quit
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {celebrationActive && (
-                <div className="celebration-container">
-                  <div className="celebration-content">
-                    <div className="jackpot-text">JACKPOT!</div>
-                    <div className="win-amount">+{currentPoints} POINTS!</div>
-                    <div className="confetti-container">
-                      {[...Array(50)].map((_, i) => (
-                        <div key={i} className="confetti"></div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
+            </div>
           )}
-          
-          {/* Quit button always visible */}
-          <button onClick={handleQuit} className="quit-button">
-            Quit Game
-          </button>
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
@@ -13,10 +13,19 @@ const Home = () => {
 
   useEffect(() => {
     const gamesRef = collection(db, 'games');
-    const q = query(gamesRef, where('status', 'in', ['published', 'active'])); // Listen to published and active games
+    const q = query(gamesRef);
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const games = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const games = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .sort((a, b) => {
+          if (!a.createdAt) return 1;
+          if (!b.createdAt) return -1;
+          const timeA = a.createdAt.seconds ? a.createdAt.seconds * 1000 : a.createdAt;
+          const timeB = b.createdAt.seconds ? b.createdAt.seconds * 1000 : b.createdAt;
+          return timeB - timeA;
+        });
+      
       setActiveGames(games);
       setLoading(false);
     }, (error) => {
@@ -24,7 +33,7 @@ const Home = () => {
       setLoading(false);
     });
 
-    return () => unsubscribe(); // Cleanup listener on component unmount
+    return () => unsubscribe();
   }, []);
 
   return (
@@ -38,7 +47,7 @@ const Home = () => {
         <main className={`main-content ${isSidebarExpanded ? 'shifted' : ''}`}>
           <div className="home-content">
             <header className="home-header">
-              <h1>Available Tournaments</h1>
+              <h1>All Games</h1>
             </header>
             {loading ? (
               <div className="loading-message">Loading games...</div>
@@ -50,7 +59,7 @@ const Home = () => {
               </div>
             ) : (
               <div className="no-games-message">
-                No active tournaments available at the moment.
+                No games available at the moment.
               </div>
             )}
           </div>
